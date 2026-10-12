@@ -1,4 +1,4 @@
-from eval_gate import simulate, compute_sem
+from eval_gate import simulate, compute_sem, interpret_sem
 
 
 if __name__ == "__main__":
@@ -15,3 +15,4 @@ if __name__ == "__main__":
         outcomes=measurements.y,
     )
 
+    print(interpret_sem(result=sem_results))

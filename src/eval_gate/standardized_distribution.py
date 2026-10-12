@@ -8,7 +8,7 @@ DISTRIBUTIONS = get_args(Distributions)
 
 def standardized_distribution(
     distribution: str,
-    nb_units: int,
+    nb_units: int | tuple[int, ...],
     rng: np.random.Generator,
 ) -> np.ndarray:
     """Draw random samples with a mean of 0 and a variance of 1
@@ -19,15 +19,16 @@ def standardized_distribution(
     distribution : Distributions
         The target distribution type. Must be one of:
         'gaussian', 'uniform', 'student_t', 'lognormal', or 'bimodal'.
-    nb_units : int
-        The number of samples (units) to generate.
+    nb_units : int | tuple[int, ...]
+        Output shape: can be an integer for 1D arrays of `nb_units`,
+        or a tuple `(n_units, k_resamples)` for 2D arrays with multiple resamples per unit.
     rng : np.random.Generator
         The NumPy random number generator instance used for sampling.
 
     Returns
     -------
     np.ndarray
-        A 1D array of standardized float samples of shape (nb_units,).
+            An array of standardized float samples matching the requested shape.
 
     Raises
     ------

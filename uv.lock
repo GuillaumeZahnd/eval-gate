@@ -199,6 +199,7 @@ source = { editable = "." }
 dependencies = [
     { name = "numpy" },
     { name = "scikit-learn" },
+    { name = "scipy" },
 ]
 
 [package.dev-dependencies]
@@ -215,6 +216,7 @@ docs = [
 requires-dist = [
     { name = "numpy", specifier = ">=2.5.4" },
     { name = "scikit-learn", specifier = ">=1.9.1" },
+    { name = "scipy", specifier = ">=1.14" },
 ]
 
 [package.metadata.requires-dev]

@@ -9,6 +9,7 @@ if __name__ == "__main__":
     measurements = simulate(
         n=population_size,
         m=nb_resample,
+        seed=0,
     )
 
     sem_results = compute_sem(

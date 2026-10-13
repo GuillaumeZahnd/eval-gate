@@ -1,5 +1,6 @@
-from .compute_sem import SEMResult
+from .sem import SEMResult
 from .core import ALTERNATIVE_HYPOTHESES
+
 
 SMALL_N = 30  # Below this many units, the normal approximation can be noticeably optimistic
 

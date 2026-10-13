@@ -4,6 +4,7 @@ from .sem import compute_sem, SEMResult
 from .interpret import interpret_sem, interpret_p_value
 from .confidence import confidence_bounds
 from .p_value import paired_p_value, PValueResult
+from .power import PowerResult, paired_power, required_nb_units
 
 __all__ = [
     "standardized_distribution",
@@ -17,4 +18,7 @@ __all__ = [
     "paired_p_value",
     "interpret_p_value",
     "PValueResult",
+    "PowerResult",
+    "paired_power",
+    "required_nb_units",
 ]

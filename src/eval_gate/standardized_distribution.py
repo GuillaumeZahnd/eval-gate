@@ -34,25 +34,32 @@ def standardized_distribution(
     ------
     ValueError
         If the provided `distribution` string is not supported.
+        If `nb_units` contains any dimension less than 1.
     """
+    if isinstance(nb_units, int):
+        if nb_units < 1:
+            raise ValueError(f"'nb_units' must be >= 1, got {nb_units}.")
+    else:
+        if any(dim < 1 for dim in nb_units):
+            raise ValueError(f"All dimensions in 'nb_units' must be >= 1, got {nb_units}.")
 
-    if distribution == "gaussian":
+    if distribution.lower() == "gaussian":
         return rng.standard_normal(nb_units)
 
-    elif distribution == "uniform":
+    elif distribution.lower() == "uniform":
         return rng.uniform(-np.sqrt(3), np.sqrt(3), nb_units)
 
-    elif distribution == "student_t":
+    elif distribution.lower() == "student_t":
         return rng.standard_t(3, nb_units) / np.sqrt(3)
 
-    elif distribution == "lognormal":
+    elif distribution.lower() == "lognormal":
         s = 1.0
         x = np.exp(s * rng.standard_normal(nb_units))
         mean = np.exp(s**2 / 2)
         var = (np.exp(s**2) - 1) * np.exp(s**2)
         return (x - mean) / np.sqrt(var)
 
-    elif distribution == "bimodal":
+    elif distribution.lower() == "bimodal":
         signs = rng.choice([-1.0, 1.0], size=nb_units)
         return (signs + 0.5 * rng.standard_normal(nb_units)) / np.sqrt(1.25)
 

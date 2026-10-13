@@ -41,6 +41,8 @@ def standardized_distribution(
         if any(dim < 1 for dim in nb_units):
             raise ValueError(f"All dimensions in 'nb_units' must be >= 1, got {nb_units}.")
 
+    distribution = "wrong"
+
     if distribution.lower() == "gaussian":
         return rng.standard_normal(nb_units)
 

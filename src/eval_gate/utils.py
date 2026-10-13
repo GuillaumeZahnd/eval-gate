@@ -4,13 +4,40 @@ from typing import NamedTuple
 
 
 class MeanSE(NamedTuple):
+    """Mean and standard error of the mean, with the number of units behind them.
+
+    Attributes
+    ----------
+    mean : float
+        Mean of the per-unit values.
+    se : float
+        Standard error of the mean, ``std(ddof=1) / sqrt(nb_units)``.
+    nb_units : int
+        Number of units.
+    """
     mean: float
     se: float
     nb_units: int
 
 
 def unit_means(outcomes: np.ndarray) -> np.ndarray:
-    """Return one value per unit, averaging replicates of shape ``(n, k)`` to ``(n,)``."""
+    """Return one value per unit, averaging replicates within each unit.
+
+    Parameters
+    ----------
+    outcomes : np.ndarray
+        Outcomes of shape ``(n,)`` or ``(n, k)``.
+
+    Returns
+    -------
+    np.ndarray
+        Array of shape ``(n,)``.
+
+    Raises
+    ------
+    ValueError
+        If ``outcomes`` is not 1D or 2D.
+    """
     x = np.asarray(outcomes, dtype=np.float64)
     if x.ndim == 1:
         return x
@@ -20,7 +47,23 @@ def unit_means(outcomes: np.ndarray) -> np.ndarray:
 
 
 def mean_and_se(outcomes: np.ndarray) -> MeanSE:
-    """Mean and unit-clustered standard error of the mean, requiring at least 2 units."""
+    """Compute the mean and unit-clustered standard error of the mean.
+
+    Parameters
+    ----------
+    outcomes : np.ndarray
+        Outcomes of shape ``(n,)`` or ``(n, k)``; replicates are averaged within each unit.
+
+    Returns
+    -------
+    MeanSE
+        Mean, standard error and number of units.
+
+    Raises
+    ------
+    ValueError
+        If ``outcomes`` has fewer than 2 units.
+    """
     u = unit_means(outcomes)
     n = u.shape[0]
     if n < 2:
@@ -29,9 +72,27 @@ def mean_and_se(outcomes: np.ndarray) -> MeanSE:
 
 
 def _format_pairs_of_arrays(a_in: np.ndarray, b_in: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Validate and format a_out pair of arrays for paired statistical analysis.
+    """Validate and format a pair of arrays for paired statistical analysis.
 
-    Coerces inputs to float arrays, promotes 1D arrays to 2D column vectors, and verifies that shapes match.
+    Coerces inputs to float arrays, promotes 1D arrays to 2D column vectors, and checks
+    that the shapes match.
+
+    Parameters
+    ----------
+    a_in : np.ndarray
+        Reference (baseline) measurements.
+    b_in : np.ndarray
+        Candidate measurements.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        The formatted ``(a, b)``, both of shape ``(n, k)``.
+
+    Raises
+    ------
+    ValueError
+        If the shapes differ.
     """
     a_out = np.asarray(a_in, dtype=float)
     b_out = np.asarray(b_in, dtype=float)
@@ -45,21 +106,21 @@ def _format_pairs_of_arrays(a_in: np.ndarray, b_in: np.ndarray) -> tuple[np.ndar
 
 
 def _paired_differences(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    """Compute per-unit paired differences (candidate B minus baseline A).
+    """Compute per-unit paired differences (candidate - reference).
 
-    Averages any multi-replicate dimensions within each unit before computing the difference.
+    Replicates are averaged within each unit before taking the difference.
 
     Parameters
     ----------
     a : np.ndarray
-        Baseline measurements of shape ``(nb_units,)`` or ``(nb_units, nb_replicates)``.
+        Reference (baseline) measurements of shape ``(nb_units,)`` or ``(nb_units, nb_replicates)``.
     b : np.ndarray
         Candidate measurements of shape ``(nb_units,)`` or ``(nb_units, nb_replicates)``.
 
     Returns
     -------
     np.ndarray
-        A 1D array of shape ``(nb_units,)`` containing the per-unit differences.
+        Per-unit differences ``b - a``, of shape ``(nb_units,)``.
     """
     a_formatted, b_formatted = _format_pairs_of_arrays(a, b)
     return b_formatted.mean(axis=1) - a_formatted.mean(axis=1)

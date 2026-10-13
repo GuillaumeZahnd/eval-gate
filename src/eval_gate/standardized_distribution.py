@@ -7,34 +7,32 @@ DISTRIBUTIONS = get_args(Distributions)
 
 
 def standardized_distribution(
-    distribution: str,
+    distribution: Distributions,
     nb_units: int | tuple[int, ...],
     rng: np.random.Generator,
 ) -> np.ndarray:
-    """Draw random samples with a mean of 0 and a variance of 1
-    from a specified probability distribution.
+    """Draw random samples with mean 0 and variance 1 from a given distribution.
 
     Parameters
     ----------
-    distribution : Distributions
-        The target distribution type. Must be one of:
-        'gaussian', 'uniform', 'student_t', 'lognormal', or 'bimodal'.
+    distribution : str
+        Case-insensitive name of the target distribution. Must be one of
+        ``"gaussian"``, ``"uniform"``, ``"student_t"``, ``"lognormal"`` or ``"bimodal"``.
     nb_units : int | tuple[int, ...]
-        Output shape: can be an integer for 1D arrays of `nb_units`,
-        or a tuple `(n_units, k_resamples)` for 2D arrays with multiple resamples per unit.
+        Output shape: an integer for a 1D array of ``nb_units`` samples, or a tuple
+        ``(n_units, k_resamples)`` for a 2D array with several resamples per unit.
     rng : np.random.Generator
-        The NumPy random number generator instance used for sampling.
+        Random number generator used for sampling.
 
     Returns
     -------
     np.ndarray
-            An array of standardized float samples matching the requested shape.
+        Standardized float samples with the requested shape.
 
     Raises
     ------
     ValueError
-        If the provided `distribution` string is not supported.
-        If `nb_units` contains any dimension less than 1.
+        If ``distribution`` is not supported, or if any dimension of ``nb_units`` is less than 1.
     """
     if isinstance(nb_units, int):
         if nb_units < 1:

@@ -42,8 +42,7 @@ def paired_p_value(
     Raises
     ------
     ValueError
-        If ``alternative_hypothesis`` is unknown, if ``margin`` is not positive where required,
-        if shapes mismatch, if fewer than 2 units are given, or if the standard error is zero.
+        If the standard error is zero.
     """
     spec = get_spec(alternative_hypothesis)
     m = spec.margin_for(margin)

@@ -32,7 +32,7 @@ def confidence_bounds(
         Significance level of the dual test, in ``(0, 1)``.
     margin : float, default=0.0
         Acceptability margin. Required to be positive for ``"non_inferiority"`` and ``"equivalence"``.
-        Validated, not used in the computation
+        Validated, not used in the computation.
 
     Returns
     -------
@@ -42,8 +42,7 @@ def confidence_bounds(
     Raises
     ------
     ValueError
-        If ``alternative_hypothesis`` is unknown, ``alpha`` is not in ``(0, 1)``,
-        ``se`` is negative or not finite, or ``margin`` is invalid where required.
+        If ``alpha`` is not in ``(0, 1)``, or if ``se`` is negative or not finite.
     """
     spec = get_spec(alternative_hypothesis)
 

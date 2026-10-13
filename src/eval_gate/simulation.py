@@ -1,17 +1,31 @@
 from dataclasses import dataclass
 import numpy as np
 
-from .standardized_distribution import standardized_distribution
+from .standardized_distribution import standardized_distribution, Distributions
 
 
 @dataclass(frozen=True)
 class Simulation:
-    """Container for synthetic nested evaluation data and ground-truth parameters."""
-    y: np.ndarray       # Measurements, of shape (n, m)
-    mu_i: np.ndarray    # True mean of each unit, of shape (n,)
-    grand_mean: float   # True population mean
-    var_between: float  # True variance of the unit means
-    var_within: float   # True average distribution_within-unit variance
+    """Synthetic nested evaluation data with its ground-truth parameters.
+
+    Attributes
+    ----------
+    y : np.ndarray
+        Measurements, of shape ``(n, m)``.
+    mu_i : np.ndarray
+        True mean of each unit, of shape ``(n,)``.
+    grand_mean : float
+        True population mean.
+    var_between : float
+        True variance of the unit means.
+    var_within : float
+        True average within-unit variance.
+    """
+    y: np.ndarray
+    mu_i: np.ndarray
+    grand_mean: float
+    var_between: float
+    var_within: float
 
     def __post_init__(self) -> None:
         # Enforce true immutability on the underlying NumPy arrays
@@ -29,8 +43,8 @@ def simulate(
     n: int,
     m: int,
     *,
-    distribution_between: str = "gaussian",
-    distribution_within: str = "gaussian",
+    distribution_between: Distributions = "gaussian",
+    distribution_within: Distributions = "gaussian",
     mu: float = 0.0,
     std_between: float = 1.0,
     std_within: float = 1.0,
@@ -38,7 +52,7 @@ def simulate(
     seed: int | None = None,
 ) -> Simulation:
     """Generate synthetic nested evaluation data with controllable variance structures.
-
+        
     Parameters
     ----------
     n : int
@@ -63,7 +77,7 @@ def simulate(
     Returns
     -------
     Simulation
-        A frozen simulation data container.
+        A frozen simulation data container.     
     """
     rng = np.random.default_rng(seed)
 

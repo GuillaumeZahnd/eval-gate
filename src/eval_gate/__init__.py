@@ -10,7 +10,6 @@ __all__ = [
     "DISTRIBUTIONS",
     "Simulation",
     "simulate",
-    "confidence_bounds",
     "compute_sem",
     "interpret_sem",
     "confidence_bounds",

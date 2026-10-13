@@ -52,7 +52,7 @@ def simulate(
     seed: int | None = None,
 ) -> Simulation:
     """Generate synthetic nested evaluation data with controllable variance structures.
-        
+
     Parameters
     ----------
     n : int
@@ -77,7 +77,7 @@ def simulate(
     Returns
     -------
     Simulation
-        A frozen simulation data container.     
+        A frozen simulation data container.
     """
     rng = np.random.default_rng(seed)
 

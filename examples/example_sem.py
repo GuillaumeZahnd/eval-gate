@@ -12,8 +12,8 @@ if __name__ == "__main__":
         seed=0,
     )
 
-    sem_results = compute_sem(
+    result = compute_sem(
         outcomes=measurements.y,
     )
 
-    print(interpret_sem(result=sem_results))
+    print(interpret_sem(result))

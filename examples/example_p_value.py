@@ -1,10 +1,11 @@
-from eval_gate import simulate, paired_p_value
+from eval_gate import simulate, paired_p_value, interpret_p_value
 
 
 if __name__ == "__main__":
 
     population_size = 200
     nb_resample = 1
+    alternative_hypothesis = "superiority"
 
     reference = simulate(
         n=population_size,
@@ -24,10 +25,10 @@ if __name__ == "__main__":
         seed=0,
     )
 
-    p_value = paired_p_value(
+    result = paired_p_value(
         a=reference.y,
         b=candidate.y,
-        alternative_hypothesis="superiority",
+        alternative_hypothesis=alternative_hypothesis,
     )
 
-    print(p_value)
+    print(interpret_p_value(result))

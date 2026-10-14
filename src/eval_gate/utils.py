@@ -124,3 +124,7 @@ def _paired_differences(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     """
     a_formatted, b_formatted = _format_pairs_of_arrays(a, b)
     return b_formatted.mean(axis=1) - a_formatted.mean(axis=1)
+
+
+def paired_std(a, b):
+    return float(np.std(_paired_differences(a, b), ddof=1))

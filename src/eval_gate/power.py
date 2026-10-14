@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from scipy.stats import norm
 
 from .core import AlternativeHypothesis, Direction, get_spec
+from ._checks import check_probability
+
 
 _MAX_NB_UNITS = 10**9  # Upper limit of the search for the required number of units.
 
@@ -47,14 +49,13 @@ def _validate_inputs(effect: float, std: float, alpha: float) -> None:
     Raises
     ------
     ValueError
-        If ``effect`` is not finite, if ``std`` is not positive and finite, or if ``alpha`` is not in ``(0, 1)``.
+        If ``effect`` is not finite, if ``std`` is not positive and finite.
     """
+    check_probability(alpha, "alpha")
     if not math.isfinite(effect):
         raise ValueError(f"'effect' must be finite, got {effect}.")
     if not (math.isfinite(std) and std > 0.0):
         raise ValueError(f"'std' must be positive and finite, got {std}.")
-    if not 0.0 < alpha < 1.0:
-        raise ValueError(f"'alpha' must be in (0, 1), got {alpha}.")
 
 
 def _validate_effect(name: str, direction: Direction, effect: float, margin: float) -> None:
@@ -195,9 +196,7 @@ def required_nb_units(
     ValueError
         If ``power`` is not in ``(0, 1)``, or if more than ``10**9`` units would be needed.
     """
-    if not 0.0 < power < 1.0:
-        raise ValueError(f"'power' must be in (0, 1), got {power}.")
-
+    check_probability(power, "power")
     spec = get_spec(alternative_hypothesis)
     m = spec.margin_for(margin)
     _validate_inputs(effect, std, alpha)

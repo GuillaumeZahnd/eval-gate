@@ -2,6 +2,7 @@ import math
 from scipy.stats import norm
 
 from .core import AlternativeHypothesis, get_spec
+from ._checks import check_probability
 
 
 def confidence_bounds(
@@ -42,15 +43,14 @@ def confidence_bounds(
     Raises
     ------
     ValueError
-        If ``alpha`` is not in ``(0, 1)``, or if ``se`` is negative or not finite.
+        If ``se`` is negative or not finite.
     """
     spec = get_spec(alternative_hypothesis)
 
     # Validated only so invalid margins fail identically to "paired_p_value"; the bounds themselves do not depend on it.
     spec.margin_for(margin)
 
-    if not 0.0 < alpha < 1.0:
-        raise ValueError(f"'alpha' must be in (0, 1), got {alpha}.")
+    check_probability(alpha, "alpha")
     if not (math.isfinite(se) and se >= 0.0):
         raise ValueError(f"'se' must be finite and non-negative, got {se}.")
 

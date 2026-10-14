@@ -4,6 +4,7 @@ from scipy.stats import norm
 
 from .core import AlternativeHypothesis, get_spec
 from .utils import _paired_differences, mean_and_se
+from ._checks import check_probability
 
 
 @dataclass(frozen=True)
@@ -82,10 +83,9 @@ def paired_p_value(
     Raises
     ------
     ValueError
-        If the standard error is zero, or if ``alpha`` is not in ``(0, 1)``.
+        If the standard error is zero.
     """
-    if not 0.0 < alpha < 1.0:
-        raise ValueError(f"'alpha' must be in (0, 1), got {alpha}.")
+    check_probability(alpha, "alpha")
 
     spec = get_spec(alternative_hypothesis)
     m = spec.margin_for(margin)

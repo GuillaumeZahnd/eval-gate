@@ -2,7 +2,7 @@ import math
 from scipy.stats import norm
 
 from .core import AlternativeHypothesis, get_spec
-from ._checks import check_probability
+from ._checks import check_probability, check_finite_non_negative
 
 
 def confidence_bounds(
@@ -39,20 +39,14 @@ def confidence_bounds(
     -------
     tuple[float, float]
         ``(lower bound, upper bound)``
-
-    Raises
-    ------
-    ValueError
-        If ``se`` is negative or not finite.
     """
+    check_probability(alpha, "alpha")
+    check_finite_non_negative(se, "se")
+
     spec = get_spec(alternative_hypothesis)
 
     # Validated only so invalid margins fail identically to "paired_p_value"; the bounds themselves do not depend on it.
     spec.margin_for(margin)
-
-    check_probability(alpha, "alpha")
-    if not (math.isfinite(se) and se >= 0.0):
-        raise ValueError(f"'se' must be finite and non-negative, got {se}.")
 
     match spec.direction:
         case "two_sided":

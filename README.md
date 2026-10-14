@@ -7,7 +7,6 @@
 ### Estimating a mean with a confidence interval
 
 ```python
-import numpy as np
 from eval_gate import compute_sem, interpret_sem
 
 # outcomes: array of shape (500,)

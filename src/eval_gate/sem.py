@@ -4,6 +4,7 @@ import numpy as np
 
 from .confidence import confidence_bounds
 from .utils import mean_and_se
+from ._checks import check_probability
 
 
 # Intervals that make sense for a plain mean: there is no reference and no margin.
@@ -78,16 +79,14 @@ def compute_sem(
     Raises
     ------
     ValueError
-        If ``alternative_hypothesis`` is not ``"two_sided"`` or ``"superiority"``,
-        or if ``confidence`` is not in ``(0, 1)``.
+        If ``alternative_hypothesis`` is not ``"two_sided"`` or ``"superiority"``.
     """
     if alternative_hypothesis not in SEM_ALTERNATIVES:
         raise ValueError(
             f"'alternative_hypothesis' must be one of {SEM_ALTERNATIVES} for a single mean, "
             f"got {alternative_hypothesis!r}."
         )
-    if not 0.0 < confidence < 1.0:
-        raise ValueError(f"confidence must be in (0, 1), got {confidence}.")
+    check_probability(confidence, "confidence")
 
     mean, sem, nb_units = mean_and_se(outcomes)
 

@@ -7,6 +7,7 @@ from eval_gate._checks import (
     check_in_open_interval,
     check_probability,
     check_finite_non_negative,
+    check_min_units,
 )
 
 
@@ -122,4 +123,28 @@ class TestCheckFiniteNonNegative:
         with pytest.raises(ValueError) as excinfo:
             check_finite_non_negative(-1.0, "se")
         assert type(excinfo.value) is ValueError
+
+
+# ----------------------------------------------------------------
+class TestCheckMinUnits:
+    @pytest.mark.parametrize("n", [2, 3, 1000])
+    def test_accepts_enough_units(self, n):
+        assert check_min_units(n, "the standard error", minimum=2) is None
+
+    @pytest.mark.parametrize("n", [0, 1])
+    def test_rejects_too_few_units(self, n):
+        with pytest.raises(ValueError):
+            check_min_units(n, "the standard error", minimum=2)
+
+    def test_custom_minimum(self):
+        assert check_min_units(5, "x", minimum=5) is None
+        with pytest.raises(ValueError):
+            check_min_units(4, "x", minimum=5)
+
+    def test_error_message_format(self):
+        with pytest.raises(ValueError) as excinfo:
+            check_min_units(1, "the standard deviation", minimum=2)
+        assert str(excinfo.value) == (
+            "At least 2 units are required to compute the standard deviation, got 1."
+        )
 

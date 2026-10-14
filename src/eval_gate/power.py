@@ -193,7 +193,7 @@ def required_nb_units(
     Raises
     ------
     ValueError
-        If ``power`` is not in ``(0, 1)``, or if more than ``10**9`` units would be needed.
+        If more than ``10**9`` units would be needed.
     """
     check_probability(power, "power")
     spec = get_spec(alternative_hypothesis)

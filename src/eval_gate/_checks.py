@@ -60,3 +60,24 @@ def check_probability(value: float, name: str) -> None:
         Name of the parameter, used in the error message.
     """
     check_in_open_interval(value, name, 0.0, 1.0)
+
+
+def check_min_units(n: int, what: str, minimum: int) -> None:
+    """Check that there are enough units to compute a statistic.
+
+    Parameters
+    ----------
+    n : int
+        Number of units available.
+    what : str
+        Statistic being computed, used in the error message (for example ``"the standard error"``).
+    minimum : int
+        Minimum number of units required.
+
+    Raises
+    ------
+    ValueError
+        If ``n < minimum``.
+    """
+    if n < minimum:
+        raise ValueError(f"At least {minimum} units are required to compute {what}, got {n}.")

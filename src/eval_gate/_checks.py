@@ -1,6 +1,50 @@
 import math
 
 
+def check_finite(value: float, name: str) -> None:
+    """Check that a value is finite (neither infinite nor ``NaN``).
+
+    The sign is not constrained. Use ``check_finite_non_negative`` when the value
+    must also be greater than or equal to zero.
+
+    Parameters
+    ----------
+    value : float
+        Value to check.
+    name : str
+        Name of the parameter, used in the error message.
+
+    Raises
+    ------
+    ValueError
+        If ``value`` is infinite or ``NaN``.
+    """
+    if not math.isfinite(value):
+        raise ValueError(f"'{name}' must be finite, got {value}.")
+
+
+def check_non_negative(value: float, name: str) -> None:
+    """Check that a value is greater than or equal to zero.
+
+    Infinity is allowed; combine with ``check_finite`` (or use
+    ``check_finite_non_negative``) to exclude it.
+
+    Parameters
+    ----------
+    value : float
+        Value to check.
+    name : str
+        Name of the parameter, used in the error message.
+
+    Raises
+    ------
+    ValueError
+        If ``value`` is negative or ``NaN``.
+    """
+    if not value >= 0.0:
+        raise ValueError(f"'{name}' must be non-negative, got {value}.")
+
+
 def check_finite_non_negative(value: float, name: str) -> None:
     """Check that a value is finite and greater than or equal to zero.
 
@@ -17,10 +61,10 @@ def check_finite_non_negative(value: float, name: str) -> None:
     Raises
     ------
     ValueError
-        If ``value`` is negative, infinite or ``NaN``.
+        If ``value`` is infinite, ``NaN`` or negative.
     """
-    if not (math.isfinite(value) and value >= 0.0):
-        raise ValueError(f"'{name}' must be finite and non-negative, got {value}.")
+    check_finite(value, name)
+    check_non_negative(value, name)
 
 
 def check_in_open_interval(value: float, name: str, low: float, high: float) -> None:

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from scipy.stats import norm
 
 from .core import AlternativeHypothesis, Direction, get_spec
-from ._checks import check_probability, check_finite_non_negative
+from ._checks import check_probability, check_finite_non_negative, check_finite
 
 
 _MAX_NB_UNITS = 10**9  # Upper limit of the search for the required number of units.
@@ -44,17 +44,10 @@ class PowerResult:
 
 
 def _validate_inputs(effect: float, std: float, alpha: float) -> None:
-    """Validate the numeric inputs shared by the power functions.
-
-    Raises
-    ------
-    ValueError
-        If ``effect`` is not finite.
-    """
+    """Validate the numeric inputs shared by the power functions."""
     check_probability(alpha, "alpha")
     check_finite_non_negative(std, "std")
-    if not math.isfinite(effect):
-        raise ValueError(f"'effect' must be finite, got {effect}.")
+    check_finite(effect, "effect")
 
 
 def _validate_effect(name: str, direction: Direction, effect: float, margin: float) -> None:

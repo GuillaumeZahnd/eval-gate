@@ -3,7 +3,7 @@ import numpy as np
 from scipy.stats import norm
 
 from .core import AlternativeHypothesis, get_spec
-from .utils import _paired_differences, mean_and_se
+from ._units import paired_differences, mean_and_se
 from ._checks import check_probability
 
 
@@ -90,7 +90,7 @@ def paired_p_value(
     spec = get_spec(alternative_hypothesis)
     m = spec.margin_for(margin)
 
-    diff, se, nb_units = mean_and_se(_paired_differences(a, b))
+    diff, se, nb_units = mean_and_se(paired_differences(a, b))
 
     if se == 0.0:
         raise ValueError("All paired differences are identical, so the standard error is 0.")

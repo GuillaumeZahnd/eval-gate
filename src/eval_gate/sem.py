@@ -3,7 +3,7 @@ from typing import Literal, get_args
 import numpy as np
 
 from .confidence import confidence_bounds
-from .utils import mean_and_se
+from ._units import mean_and_se
 from ._checks import check_probability
 
 

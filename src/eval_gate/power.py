@@ -1,5 +1,5 @@
 import math
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from scipy.stats import norm
 
 from .core import AlternativeHypothesis, Direction, get_spec
@@ -7,6 +7,38 @@ from ._checks import check_probability, check_finite_non_negative, check_finite
 
 
 _MAX_NB_UNITS = 10**9  # Upper limit of the search for the required number of units.
+
+
+@dataclass(frozen=True)
+class PowerAtResult:
+    """Power of a paired comparison for a given number of units, with its design conditions.
+
+    Attributes
+    ----------
+    nb_units : int
+        Number of paired units.
+    power : float
+        Probability that the test rejects the null hypothesis with ``nb_units``. It equals ``alpha``
+        when ``effect`` sits on the boundary of the null.
+    alternative_hypothesis : AlternativeHypothesis
+        The alternative hypothesis to be tested.
+    margin : float
+        Effective margin; ``0.0`` when the hypothesis has no margin.
+    effect : float
+        Assumed true mean paired difference (candidate - reference).
+    std : float
+        Assumed standard deviation of the per-unit paired differences.
+    alpha : float
+        Significance level of the test.
+    """
+
+    nb_units: int
+    power: float
+    alternative_hypothesis: AlternativeHypothesis
+    margin: float
+    effect: float
+    std: float
+    alpha: float
 
 
 @dataclass(frozen=True)
@@ -107,7 +139,7 @@ def paired_power(
     *,
     margin: float = 0.0,
     alpha: float = 0.05,
-) -> float:
+) -> PowerAtResult:
     """Compute the power of ``paired_p_value`` for a given number of units.
 
     The test is the normal approximation used by ``paired_p_value``, with ``std`` taken as known.
@@ -130,9 +162,9 @@ def paired_power(
 
     Returns
     -------
-    float
-        Probability that the test rejects the null hypothesis. It equals ``alpha``
-        when ``effect`` sits on the boundary of the null.
+    PowerAtResult
+        The power together with the number of units and the design conditions. The power
+        equals ``alpha`` when ``effect`` sits on the boundary of the null.
 
     Raises
     ------
@@ -146,7 +178,15 @@ def paired_power(
     m = spec.margin_for(margin)
     _validate_inputs(effect, std, alpha)
 
-    return _power(spec.direction, nb_units, effect, std, m, alpha)
+    return PowerAtResult(
+        nb_units=nb_units,
+        power=_power(spec.direction, nb_units, effect, std, m, alpha),
+        alternative_hypothesis=alternative_hypothesis,
+        margin=m,
+        effect=effect,
+        std=std,
+        alpha=alpha,
+    )
 
 
 def required_nb_units(
@@ -212,13 +252,12 @@ def required_nb_units(
         else:
             lo = mid + 1
 
-    return PowerResult(
+    achieved = paired_power(
         nb_units=hi,
-        power=_power(spec.direction, hi, effect, std, m, alpha),
-        target_power=power,
-        alternative_hypothesis=alternative_hypothesis,
-        margin=m,
         effect=effect,
         std=std,
+        alternative_hypothesis=alternative_hypothesis,
+        margin=margin,
         alpha=alpha,
     )
+    return PowerResult(target_power=power, **asdict(achieved))

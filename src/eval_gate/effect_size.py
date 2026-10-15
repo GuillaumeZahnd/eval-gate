@@ -21,6 +21,20 @@ _MAGNITUDE_THRESHOLDS: tuple[tuple[float, EffectMagnitude], ...] = (
 _MIN_UNITS = 3
 
 
+def magnitude_label(size: float) -> EffectMagnitude:
+    """Rough verbal label for a standardized effect: negligible, small, medium or large.
+
+    Uses Cohen's conventions (0.2, 0.5 and 0.8) on ``abs(size)``. They are generic rules of thumb
+    from the social sciences, not statements about practical importance: whether a given effect matters
+        depends on the application, and should be judged in the raw units of ``mean_difference``.
+    """
+    size = abs(size)
+    for upper, label in _MAGNITUDE_THRESHOLDS:
+        if size < upper:
+            return label
+    return "large"
+
+
 @dataclass(frozen=True)
 class PairedEffectResult:
     """Result of a standardized effect size analysis for paired data.
@@ -58,17 +72,8 @@ class PairedEffectResult:
 
     @property
     def magnitude(self) -> EffectMagnitude:
-        """Rough verbal label for ``|hedges_g|``: negligible, small, medium or large.
-
-        Uses Cohen's conventions (0.2, 0.5 and 0.8). They are generic rules of thumb from the
-        social sciences, not statements about practical importance: whether a given effect matters
-        depends on the application, and should be judged in the raw units of ``mean_difference``.
-        """
-        size = abs(self.hedges_g)
-        for upper, label in _MAGNITUDE_THRESHOLDS:
-            if size < upper:
-                return label
-        return "large"
+        """Rough verbal label for ``|hedges_g|``, using Cohen's convention: negligible, small, medium or large."""
+        return magnitude_label(self.hedges_g)
 
 
 def _hedges_correction(df: int) -> float:

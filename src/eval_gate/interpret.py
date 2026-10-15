@@ -1,5 +1,7 @@
 from .sem import SEMResult
 from .p_value import PValueResult
+from .power import PowerResult
+from .effect_size import PairedEffectResult, magnitude_label
 
 
 SMALL_N = 30  # Below this many units, the normal approximation can be noticeably optimistic
@@ -104,7 +106,11 @@ def interpret_p_value(
     str
         A one-paragraph interpretive summary.
     """
-    m = format(result.margin, fmt)
+
+    def num(x: float) -> str:
+        return format(x, fmt)
+
+    m = num(result.margin)
     significant = result.reject
 
     match result.alternative_hypothesis:
@@ -152,8 +158,8 @@ def interpret_p_value(
     conclusion = if_rejected if significant else if_not
 
     notes = [
-        f"The observed difference (candidate - reference) is {format(result.estimate, fmt)} "
-        f"(SE {format(result.se, fmt)}, {result.nb_units} units)."
+        f"The observed difference (candidate - reference) is {num(result.estimate)} "
+        f"(SE {num(result.se)}, {result.nb_units} units)."
     ]
     if significant:
         notes.append("A small p-value shows that a difference is detectable, not that it is large.")
@@ -163,3 +169,210 @@ def interpret_p_value(
             "the normal approximation can make the p-value somewhat too small."
         )
     return " ".join([head, meaning, conclusion, *notes])
+
+
+def interpret_power(
+    result: PowerResult,
+    *,
+    metric: str = "mean outcome",
+    unit: str = "units",
+    fmt: str = ".3f",
+) -> str:
+    """Return a one-paragraph plain-language reading of a ``required_nb_units`` result.
+
+    Parameters
+    ----------
+    result : PowerResult
+        The result object returned by ``required_nb_units``.
+    metric : str, default="mean outcome"
+        What is being compared, e.g. ``"mean accuracy"``.
+    unit : str, default="units"
+        What one unit is, e.g. ``"questions"``, ``"patients"`` or ``"matches"``.
+    fmt : str, default=".3f"
+        Format spec for the effect, margin and standard deviation; ``".1%"`` prints
+        proportions as percentages.
+
+    Returns
+    -------
+    str
+        A one-paragraph interpretive summary.
+    """
+
+    def num(x: float) -> str:
+        return format(x, fmt)
+
+    m = num(result.margin)
+    effect = num(result.effect)
+
+    match result.alternative_hypothesis:
+        case "two_sided":
+            goal = f"to detect a true difference (candidate - reference) of {effect} in {metric}"
+        case "superiority":
+            goal = f"to show that the candidate's {metric} is higher, if the true difference is {effect}"
+        case "non_inferiority":
+            goal = (
+                f"to show that the candidate's {metric} is not worse than the reference's by {m} or more, "
+                f"if the true difference is {effect}"
+            )
+        case "equivalence":
+            goal = f"to show that the difference in {metric} is within ±{m}, if the true difference is {effect}"
+
+    head = (
+        f"{result.nb_units} {unit} are needed {goal}, with {_pct(result.target_power)} power "
+        f"at significance level {result.alpha:g} (achieved power: {result.power:.1%})."
+    )
+    meaning = (
+        "Power is the probability that the test rejects the null hypothesis if the assumed true difference is real. "
+        f"This assumes the per-unit paired differences have a standard deviation of {num(result.std)}; "
+        f"a larger one would need more {unit}."
+    )
+
+    notes = []
+    if result.nb_units < SMALL_N:
+        notes.append(
+            f"With fewer than {SMALL_N} {unit}, the normal approximation is optimistic: "
+            "treat this number as a lower bound."
+        )
+    return " ".join([head, meaning, *notes])
+
+
+def interpret_effect_size(
+    result: PairedEffectResult,
+    *,
+    metric: str = "mean outcome",
+    unit: str = "units",
+    fmt: str = ".3f",
+) -> str:
+    """Return a plain-language reading of a ``compute_paired_effect_size`` result.
+
+    The text has one line per element:
+
+    1. The raw difference and the standardized effect (Hedges' g, with its confidence interval and a rough size label).
+    2. The conclusion, one of six outcomes decided by where the interval lies relative to zero and
+       to the negligible band (``|g|`` below 0.2):
+
+       - difference established, by at least a given size;
+       - difference established, but its size is unclear and may be negligible;
+       - difference established, but negligible;
+       - no meaningful difference (effects beyond negligible ruled out, not a formal equivalence test);
+       - inconclusive, with one direction beyond negligible ruled out;
+       - inconclusive.
+
+    3. Whether zero lies inside the interval, and the range of plausible effects.
+    4. A caveat when the sample is small (fewer than ``SMALL_N`` units).
+    5. "About the test", a sentence describing the method.
+
+    Parameters
+    ----------
+    result : PairedEffectResult
+        The result object returned by ``compute_paired_effect_size``.
+    metric : str, default="mean outcome"
+        What is being compared, e.g. ``"mean accuracy"``.
+    unit : str, default="units"
+        What one unit is, e.g. ``"questions"``, ``"patients"`` or ``"matches"``.
+    fmt : str, default=".3f"
+        Format spec for the raw difference and its standard deviation; ``".1%"`` prints
+        proportions as percentages. The standardized values always use two decimals.
+
+    Returns
+    -------
+    str
+        A short interpretive text, with its lines separated by newlines.
+    """
+
+    def num(x: float) -> str:
+        return format(x, fmt)
+
+    n = result.nb_units
+    g = result.hedges_g
+    lower = result.ci_lower
+    upper = result.ci_upper
+    direction = "higher" if g > 0 else "lower"
+    change = "increase" if g > 0 else "decrease"
+    level = _pct(1.0 - result.alpha)
+
+    # Line 1: the numbers
+    if result.mean_difference == 0:
+        difference = "does not differ from the reference's on average"
+    else:
+        difference = f"is {num(abs(result.mean_difference))} {direction} than the reference's on average"
+
+    head = (
+        f"The candidate's {metric} {difference} ({n} {unit}), a {result.magnitude} standardized effect "
+        f"(Hedges' g = {g:.2f}, {level} CI [{lower:.2f}, {upper:.2f}])."
+    )
+
+    # Classification: where the interval lies relative to zero and to the negligible band
+    zero_inside = lower <= 0 <= upper
+    lower_label = magnitude_label(lower)
+    upper_label = magnitude_label(upper)
+    # When zero lies outside the interval, g has the sign of the whole interval, so the end
+    # nearest to zero is the lower one if g > 0 and the upper one otherwise.
+    near_label, far_label = (lower_label, upper_label) if g > 0 else (upper_label, lower_label)
+    # Number of interval ends that are negligible (0, 1 or 2). With zero outside the interval, a single
+    # negligible end is necessarily the nearest one.
+    nb_negligible = (lower_label == "negligible") + (upper_label == "negligible")
+
+    if zero_inside:
+        case = ("inconclusive", "inconclusive_one_side", "no_meaningful_difference")[nb_negligible]
+    else:
+        case = ("established", "established_unclear_size", "established_negligible")[nb_negligible]
+
+    # Line 2: the conclusion
+    match case:
+        case "established":
+            verdict = f"difference established — the candidate is {direction}, by at least a {near_label} effect."
+        case "established_unclear_size":
+            verdict = (
+                f"difference established — the candidate is {direction}, "
+                "but its size is unclear and may be negligible."
+            )
+        case "established_negligible":
+            verdict = f"difference established — the candidate is {direction}, but the effect is negligible."
+        case "no_meaningful_difference":
+            verdict = (
+                "no meaningful difference — effects beyond negligible are ruled out in both directions "
+                "(this is not a formal equivalence test)."
+            )
+        case "inconclusive_one_side":
+            if lower_label == "negligible":
+                ruled_out, possible, possible_label = "a decrease", "an increase", upper_label
+            else:
+                ruled_out, possible, possible_label = "an increase", "a decrease", lower_label
+            verdict = (
+                f"inconclusive — {ruled_out} beyond negligible is ruled out, "
+                f"but {possible} up to a {possible_label} effect is not."
+            )
+        case "inconclusive":
+            verdict = "inconclusive — the data are compatible with a decrease, no difference, or an increase."
+    conclusion = f"Conclusion: {verdict}"
+
+    # Line 3: zero and the plausible effects
+    if zero_inside:
+        zero = f"Zero lies inside the {level} interval, so 'no difference' cannot be ruled out."
+    else:
+        zero = f"Zero lies outside the {level} interval, so 'no difference' is ruled out."
+
+    if nb_negligible == 2:
+        plausible = "All plausible effects are negligible."
+    elif zero_inside:
+        plausible = f"Plausible effects range from a {lower_label} decrease to a {upper_label} increase."
+    elif near_label == far_label:
+        plausible = f"All plausible effects are {far_label} {change}s."
+    else:
+        plausible = f"Plausible effects range from a {near_label} to a {far_label} {change}."
+
+    small_n = []
+    if n < SMALL_N:
+        small_n.append(
+            f"Only {n} {unit} (less than {SMALL_N}): the interval is approximate and can be somewhat too narrow."
+        )
+
+    about = (
+        f"About the test: Hedges' g is the mean paired difference ({num(result.mean_difference)}) "
+        f"divided by the standard deviation of the per-unit differences ({num(result.std_difference)}), "
+        "then corrected for small-sample bias; its interval uses a normal approximation, "
+        "and the size labels are Cohen's rules of thumb (0.2, 0.5, 0.8)."
+    )
+
+    return "\n".join([head, conclusion, f"{zero} {plausible}", *small_n, about])

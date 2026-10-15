@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 
 def check_finite(value: float, name: str) -> None:
@@ -18,9 +19,42 @@ def check_finite(value: float, name: str) -> None:
     ------
     ValueError
         If ``value`` is infinite or ``NaN``.
+
+    See Also
+    --------
+    check_all_finite : Same check for every element of an array.
     """
     if not math.isfinite(value):
         raise ValueError(f"'{name}' must be finite, got {value}.")
+
+
+def check_all_finite(values: np.ndarray, name: str) -> None:
+    """Check that every element of an array is finite (no ``inf`` and no ``NaN``).
+
+    Meant to run before any statistic is computed from the array.
+
+    Parameters
+    ----------
+    values : np.ndarray
+        Array (or array-like) to check, of any shape. An empty array passes.
+    name : str
+        Name of the parameter, used in the error message.
+
+    Raises
+    ------
+    ValueError
+        If any element is infinite or ``NaN``.
+
+    See Also
+    --------
+    check_finite : Same check for a single scalar parameter.
+    """
+    array = np.asarray(values)
+    nb_non_finite = int(array.size - np.count_nonzero(np.isfinite(array)))
+    if nb_non_finite:
+        raise ValueError(
+            f"'{name}' must contain only finite values, got {nb_non_finite} non-finite value(s) out of {array.size}."
+        )
 
 
 def check_non_negative(value: float, name: str) -> None:

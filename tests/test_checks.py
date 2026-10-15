@@ -10,6 +10,7 @@ from eval_gate._checks import (
     check_finite,
     check_non_negative,    
     check_finite_non_negative,
+    check_all_finite,
 )
 
 
@@ -210,3 +211,77 @@ class TestCheckFinite:
 
     def test_negative_values_are_allowed(self):
         assert check_finite(-5.0, "effect") is None
+        
+
+# ----------------------------------------------------------------
+class TestCheckAllFinite:
+    @pytest.mark.parametrize(
+        "values",
+        [
+            np.array([0.0, -1.5, 2.5, 1e300, -1e300]),
+            np.array([[1.0, 2.0], [3.0, 4.0]]),  # 2D
+            np.array([1, 2, 3]),  # integers are always finite
+            np.array([]),  # nothing to reject
+            [1.0, 2.0, 3.0],  # array-likes are accepted
+            np.float32([0.5, 1.5]),
+        ],
+    )
+    def test_accepts_finite_arrays(self, values):
+        assert check_all_finite(values, "x") is None
+ 
+    @pytest.mark.parametrize("bad", [math.nan, math.inf, -math.inf])
+    def test_rejects_a_single_non_finite_value(self, bad):
+        with pytest.raises(ValueError):
+            check_all_finite(np.array([1.0, bad, 3.0]), "x")
+ 
+    @pytest.mark.parametrize("position", [0, 1, 2])
+    def test_rejects_wherever_the_bad_value_is(self, position):
+        values = np.array([1.0, 2.0, 3.0])
+        values[position] = math.nan
+        with pytest.raises(ValueError):
+            check_all_finite(values, "x")
+ 
+    def test_rejects_non_finite_value_in_2d_array(self):
+        values = np.array([[1.0, 2.0], [3.0, math.inf]])
+        with pytest.raises(ValueError):
+            check_all_finite(values, "x")
+ 
+    def test_rejects_when_every_value_is_non_finite(self):
+        with pytest.raises(ValueError):
+            check_all_finite(np.array([math.nan, math.inf, -math.inf]), "x")
+ 
+    @pytest.mark.parametrize("name", ["differences", "reference", "paired differences"])
+    def test_error_message_contains_parameter_name(self, name):
+        with pytest.raises(ValueError, match=rf"^'{name}' must contain only finite values"):
+            check_all_finite(np.array([1.0, math.nan]), name)
+ 
+    @pytest.mark.parametrize(
+        "values, nb_bad, size",
+        [
+            (np.array([1.0, math.nan, 3.0]), 1, 3),
+            (np.array([math.nan, math.inf, -math.inf, 4.0]), 3, 4),
+            (np.array([[1.0, math.inf], [math.nan, 4.0]]), 2, 4),
+        ],
+    )
+    def test_error_message_format_reports_how_many_values_are_bad(self, values, nb_bad, size):
+        with pytest.raises(ValueError) as excinfo:
+            check_all_finite(values, "x")
+        assert str(excinfo.value) == (
+            f"'x' must contain only finite values, got {nb_bad} non-finite value(s) out of {size}."
+        )
+ 
+    def test_does_not_emit_numpy_warnings(self, recwarn):
+        with pytest.raises(ValueError):
+            check_all_finite(np.array([math.inf, -math.inf, math.nan]), "x")
+        assert len(recwarn) == 0
+ 
+    def test_does_not_modify_its_input(self):
+        values = np.array([1.0, 2.0, 3.0])
+        check_all_finite(values, "x")
+        assert np.array_equal(values, [1.0, 2.0, 3.0])
+ 
+    def test_raises_exactly_value_error(self):
+        with pytest.raises(ValueError) as excinfo:
+            check_all_finite(np.array([math.nan]), "x")
+        assert type(excinfo.value) is ValueError
+        

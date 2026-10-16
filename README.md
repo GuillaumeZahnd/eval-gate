@@ -15,6 +15,7 @@ result = compute_sem(
   confidence=0.95,  # confidence level of the interval
   alternative_hypothesis="two_sided"  # sidedness of the interval
 )
+
 print(interpret_sem(result))
 ```
 
@@ -33,6 +34,7 @@ result = paired_p_value(
     margin=0.1,  # largest acceptable drop
     alpha=0.05,  # significance level of the decision
 )
+
 print(interpret_p_value(result))
 ```
 
@@ -60,4 +62,51 @@ print(interpret_effect_size(result))
 > Zero lies outside the 95% interval, so 'no difference' is ruled out. Plausible effects range from a negligible to a small increase.
 >
 > About the test: Hedges' g is the mean paired difference (0.184) divided by the standard deviation of the per-unit differences (1.081), then corrected for small-sample bias; its interval uses a normal approximation, and the size labels are Cohen's rules of thumb (0.2, 0.5, 0.8).
+
+### Estimating the required number of units
+
+```python
+from eval_gate required_nb_units, interpret_power
+
+# Question: how many units are needed to detect an effect?
+# Fixed: effect, std, alpha, power. Solved for: nb_units.
+design = required_nb_units(
+    effect=0.15,                           # assumed: the smallest true difference worth detecting
+    std=std,                               # estimated from pilot data
+    alternative_hypothesis="superiority",  # chosen: alternative hypothesis
+    power=0.8,                             # chosen: target power
+    alpha=0.05,                            # chosen: significance level
+)
+
+print(interpret_power(design))
+```
+
+> 134 units are needed to show that the candidate's mean outcome is higher, with at least 80% power at significance level 0.05.
+>
+> Assumptions: a true difference (candidate - reference) of 0.150 and a standard deviation of the per-unit differences of 0.696 (standardized effect 0.22).
+
+### Estimating the power level
+
+```python
+from eval_gate paired_power, interpret_power_at
+
+# Question: what power does a study have?
+# Fixed: effect, margin, nb_units, std, alpha. Solved for: power.
+achieved = paired_power(
+    nb_units=population_size,  # given: number of units available
+    effect=0.05,                           # assumed: the true difference
+    margin=0.15,                           # chosen: largest difference still considered equivalent
+    std=std,                               # estimated from pilot data
+    alternative_hypothesis="equivalence",  # chosen: alternative hypothesis
+    alpha=0.05,                            # chosen: significance level
+)
+
+print(interpret_power_at(achieved))
+```
+
+> With 200 units, the test has 65.6% power to show that the difference in mean outcome is within ±0.150, at significance level 0.05.
+>
+> Conclusion: underpowered. The assumed difference would be missed 34.4% of the time (the usual target is 80% power).
+>
+> Assumptions: a true difference (candidate - reference) of 0.050 and a standard deviation of the per-unit differences of 0.685 (standardized effect 0.07).
 

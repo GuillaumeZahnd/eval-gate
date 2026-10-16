@@ -1,16 +1,28 @@
-import math
+"""
+Power analysis links five interdependent quantities: fixing any four determines the fifth.
 
-from eval_gate import simulate, paired_power, required_nb_units, paired_std
+- effect (delta): magnitude of the true difference to detect, delta = mu_candidate - mu_reference.
+- nb_units (n): number of paired units.
+- std: variability of the data, here the standard deviation of the per-unit paired differences.
+- alpha: significance level, the false-positive rate (probability of rejecting the null when it is true).
+- power (1 - beta): the true-positive rate (probability of rejecting the null when the effect is real).
+"""
+
+from eval_gate import (
+    simulate,
+    paired_std,
+    required_nb_units,
+    interpret_power,
+)
 
 
 if __name__ == "__main__":
 
     population_size = 200
     nb_resample = 1
+    alternative_hypothesis = "superiority"
 
-    # ------------------------------------------------------------------
-    # Pilot data: used only to estimate the standard deviation of the paired differences.
-    # ------------------------------------------------------------------
+    # Pilot data, used only to estimate the variability.
     reference = simulate(
         n=population_size,
         m=nb_resample,
@@ -29,55 +41,18 @@ if __name__ == "__main__":
         seed=0,
     )
 
+    # Variability: standard deviation of the per-unit paired differences.
     std = paired_std(reference.y, candidate.y)
-    print(f"Pilot std of paired differences: {std:.3f}\n")
 
-    # ------------------------------------------------------------------
-    # 1. Sample size: how many units are needed to detect the planned effect?
-    #    The PowerResult remembers the whole design (hypothesis, margin, effect, std, alpha).
-    # ------------------------------------------------------------------
+    # Question: how many units are needed to detect an effect?
+    # Fixed: effect, std, alpha, power. Solved for: nb_units.
     design = required_nb_units(
-        effect=0.2,
-        std=paired_std(reference.y, candidate.y),
-        alternative_hypothesis="superiority",
-        power=0.8,
-        alpha=0.05,
+        effect=0.15,  # assumed: the smallest true difference worth detecting
+        std=std,  # estimated from pilot data
+        alternative_hypothesis="superiority",  # chosen
+        power=0.8,  # chosen: target power
+        alpha=0.05,  # chosen: significance level
     )
-    print(design)
 
-    # Reuse the design conditions for every follow-up question, so the hypothesis,
-    # margin, std and alpha can never drift away from the ones the design was made for.
-    conditions = {
-        "effect": design.effect,
-        "std": design.std,
-        "alternative_hypothesis": design.alternative_hypothesis,
-        "margin": design.margin,
-        "alpha": design.alpha,
-    }
+    print(interpret_power(design))
 
-    # ------------------------------------------------------------------
-    # 2. Power: the inverse question. With a given number of units, what is the
-    #    probability of detecting the effect? paired_power returns a PowerAtResult,
-    #    which carries its own design conditions, so it is self-describing too.
-    #    Round trip: at the required number of units, power must match the design.
-    # ------------------------------------------------------------------
-    at_required = paired_power(nb_units=design.nb_units, **conditions)
-    assert math.isclose(at_required.power, design.power)
-    print(f"\n{at_required}")
-
-    # ------------------------------------------------------------------
-    # 3. Power as a function of the number of units, for the planned effect.
-    # ------------------------------------------------------------------
-    print(f"\nPower for effect={design.effect} ({design.alternative_hypothesis}, alpha={design.alpha}):")
-    for nb_units in (50, 100, 200, 400, 800):
-        result = paired_power(nb_units=nb_units, **conditions)
-        print(f"  nb_units={result.nb_units:>4}: {result.power:.3f}")
-
-    # ------------------------------------------------------------------
-    # 4. Sensitivity: what if the true effect is smaller than planned?
-    #    Only the effect changes; everything else comes from the design.
-    # ------------------------------------------------------------------
-    print(f"\nPower at nb_units={design.nb_units} if the true effect is smaller:")
-    for smaller_effect in (0.1, 0.15, design.effect):
-        result = paired_power(nb_units=design.nb_units, **{**conditions, "effect": smaller_effect})
-        print(f"  effect={result.effect:<5}: {result.power:.3f}")

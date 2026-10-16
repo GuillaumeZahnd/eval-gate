@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass
 from scipy.stats import norm
 
 from .core import AlternativeHypothesis, Direction, get_spec
-from ._checks import check_probability, check_finite_non_negative, check_finite
+from ._checks import check_probability, check_finite_strictly_positive, check_finite
 
 
 _MAX_NB_UNITS = 10**9  # Upper limit of the search for the required number of units.
@@ -18,8 +18,8 @@ class PowerAtResult:
     nb_units : int
         Number of paired units.
     power : float
-        Probability that the test rejects the null hypothesis with ``nb_units``. It equals ``alpha``
-        when ``effect`` sits on the boundary of the null.
+        Probability that the test rejects the null hypothesis with ``nb_units``.
+        It is at most ``alpha`` when ``effect`` sits on the boundary of the null.
     alternative_hypothesis : AlternativeHypothesis
         The alternative hypothesis to be tested.
     margin : float
@@ -78,7 +78,7 @@ class PowerResult:
 def _validate_inputs(effect: float, std: float, alpha: float) -> None:
     """Validate the numeric inputs shared by the power functions."""
     check_probability(alpha, "alpha")
-    check_finite_non_negative(std, "std")
+    check_finite_strictly_positive(std, "std")
     check_finite(effect, "effect")
 
 
@@ -98,7 +98,7 @@ def _validate_effect(name: str, direction: Direction, effect: float, margin: flo
             target_region = "nonzero"
         case "greater":
             ok = effect > -margin
-            target_region = f"greater than {-margin:g}"
+            target_region = f"greater than {0.0 - margin:g}"
         case "equivalence":
             ok = abs(effect) < margin
             target_region = f"strictly within ±{margin:g}"
@@ -242,8 +242,8 @@ def required_nb_units(
     hi = 2
     while not reaches_target(hi):
         lo = hi
-        hi = hi * 2
-        if hi > _MAX_NB_UNITS:
+        hi = min(hi * 2, _MAX_NB_UNITS)
+        if hi == _MAX_NB_UNITS:
             raise ValueError(f"More than {_MAX_NB_UNITS} units would be needed; check 'effect' and 'std'.")
     while lo < hi:
         mid = (lo + hi) // 2

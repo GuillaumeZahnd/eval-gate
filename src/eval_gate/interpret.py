@@ -1,6 +1,6 @@
 from .sem import SEMResult
 from .p_value import PValueResult
-from .power import PowerResult
+from .power import PowerResult, PowerAtResult
 from .effect_size import PairedEffectResult, magnitude_label
 
 
@@ -178,7 +178,16 @@ def interpret_power(
     unit: str = "units",
     fmt: str = ".3f",
 ) -> str:
-    """Return a one-paragraph plain-language reading of a ``required_nb_units`` result.
+    """Return a plain-language reading of a ``required_nb_units`` result.
+
+    The text has one line per element:
+
+    1. The required number of units, with the goal it serves and the criteria it meets
+       (target power and significance level).
+    2. The assumptions behind it: the true difference and the standard deviation of the
+       per-unit differences, with the resulting standardized effect.
+    3. A caveat when the number is small (fewer than ``SMALL_N`` units).
+    4. "About the test", a sentence describing the method and its limits.
 
     Parameters
     ----------
@@ -190,51 +199,186 @@ def interpret_power(
         What one unit is, e.g. ``"questions"``, ``"patients"`` or ``"matches"``.
     fmt : str, default=".3f"
         Format spec for the effect, margin and standard deviation; ``".1%"`` prints
-        proportions as percentages.
+        proportions as percentages. The standardized effect always uses two decimals.
 
     Returns
     -------
     str
-        A one-paragraph interpretive summary.
+        A short interpretive text.
     """
 
     def num(x: float) -> str:
         return format(x, fmt)
 
-    m = num(result.margin)
-    effect = num(result.effect)
+    n = result.nb_units
+    margin = num(result.margin)
 
+    # Line 1: the number, its goal, and the criteria it meets
     match result.alternative_hypothesis:
         case "two_sided":
-            goal = f"to detect a true difference (candidate - reference) of {effect} in {metric}"
+            goal = f"detect a difference in {metric}"
         case "superiority":
-            goal = f"to show that the candidate's {metric} is higher, if the true difference is {effect}"
+            goal = f"show that the candidate's {metric} is higher"
         case "non_inferiority":
-            goal = (
-                f"to show that the candidate's {metric} is not worse than the reference's by {m} or more, "
-                f"if the true difference is {effect}"
-            )
+            goal = f"show that the candidate's {metric} is not worse than the reference's by {margin} or more"
         case "equivalence":
-            goal = f"to show that the difference in {metric} is within ±{m}, if the true difference is {effect}"
+            goal = f"show that the difference in {metric} is within ±{margin}"
 
     head = (
-        f"{result.nb_units} {unit} are needed {goal}, with {_pct(result.target_power)} power "
-        f"at significance level {result.alpha:g} (achieved power: {result.power:.1%})."
-    )
-    meaning = (
-        "Power is the probability that the test rejects the null hypothesis if the assumed true difference is real. "
-        f"This assumes the per-unit paired differences have a standard deviation of {num(result.std)}; "
-        f"a larger one would need more {unit}."
+        f"{n} {unit} are needed to {goal}, "
+        f"with at least {_pct(result.target_power)} power at significance level {result.alpha:g}."
     )
 
-    notes = []
-    if result.nb_units < SMALL_N:
-        notes.append(
-            f"With fewer than {SMALL_N} {unit}, the normal approximation is optimistic: "
-            "treat this number as a lower bound."
+    # Line 2: the assumptions
+    assumptions = (
+        f"Assumptions: a true difference (candidate - reference) of {num(result.effect)} "
+        f"and a standard deviation of the per-unit differences of {num(result.std)} "
+        f"(standardized effect {result.effect / result.std:.2f})."
+    )
+
+    # Line 3: caveat when the number is small
+    small_n = []
+    if n < SMALL_N:
+        small_n.append(
+            f"Only {n} {unit} (less than {SMALL_N}): the number is approximate and should be treated as a lower bound."
         )
-    return " ".join([head, meaning, *notes])
 
+    # Line 4: About the test
+    about = (
+        "About the test: power is the probability that the test rejects the null hypothesis if the assumed "
+        "difference holds. It uses a normal approximation with the standard deviation taken as known; "
+        "if the true standard deviation is larger than assumed, or is estimated from a small sample, "
+        "the actual power can be lower."
+    )
+
+    return "\n".join([head, assumptions, *small_n, about])
+
+
+def interpret_power_at(
+    result: PowerAtResult,
+    *,
+    metric: str = "mean outcome",
+    unit: str = "units",
+    fmt: str = ".3f",
+) -> str:
+    """Return a plain-language reading of a ``paired_power`` result.
+
+    The text has one line per element:
+
+    1. The power reached with the given number of units, and the goal it refers to.
+    2. The conclusion, one of four outcomes decided by the power and by where the assumed
+       difference lies:
+
+       - adequate (power of at least 80%);
+       - underpowered (50% to 80%);
+       - badly underpowered (below 50%);
+       - not a power (the assumed difference lies in the null region of the hypothesis).
+
+    3. The assumptions behind it: the true difference and the standard deviation of the
+       per-unit differences, with the resulting standardized effect.
+    4. A caveat when the sample is small (fewer than ``SMALL_N`` units).
+    5. "About the test", a sentence describing the method and its limits.
+
+    Parameters
+    ----------
+    result : PowerAtResult
+        The result object returned by ``paired_power``.
+    metric : str, default="mean outcome"
+        What is being compared, e.g. ``"mean accuracy"``.
+    unit : str, default="units"
+        What one unit is, e.g. ``"questions"``, ``"patients"`` or ``"matches"``.
+    fmt : str, default=".3f"
+        Format spec for the effect, margin and standard deviation; ``".1%"`` prints
+        proportions as percentages. The standardized effect always uses two decimals.
+
+    Returns
+    -------
+    str
+        A short interpretive text, with its lines separated by newlines.
+    """
+
+    def num(x: float) -> str:
+        return format(x, fmt)
+
+    n = result.nb_units
+    power = result.power
+    margin = num(result.margin)
+
+    # Line 1: the power and its goal
+    match result.alternative_hypothesis:
+        case "two_sided":
+            goal = f"detect a difference in {metric}"
+        case "superiority":
+            goal = f"show that the candidate's {metric} is higher"
+        case "non_inferiority":
+            goal = f"show that the candidate's {metric} is not worse than the reference's by {margin} or more"
+        case "equivalence":
+            goal = f"show that the difference in {metric} is within ±{margin}"
+
+    head = f"With {n} {unit}, the test has {power:.1%} power to {goal}, at significance level {result.alpha:g}."
+
+    # Classification: is the assumed difference in the null region, and how high is the power
+    match result.alternative_hypothesis:
+        case "two_sided":
+            in_null = result.effect == 0
+        case "superiority" | "non_inferiority":
+            in_null = result.effect <= -result.margin
+        case "equivalence":
+            in_null = abs(result.effect) >= result.margin
+
+    if in_null:
+        case = "not_a_power"
+    elif power >= 0.8:
+        case = "adequate"
+    elif power >= 0.5:
+        case = "underpowered"
+    else:
+        case = "badly_underpowered"
+
+    # Line 2: conclusion
+    match case:
+        case "adequate":
+            verdict = f"adequate. The assumed difference would be detected {power:.1%} of the time (at least the usual 80%)."
+        case "underpowered":
+            verdict = (
+                f"underpowered. The assumed difference would be missed {1 - power:.1%} of the time "
+                "(the usual target is 80% power)."
+            )
+        case "badly_underpowered":
+            verdict = (
+                f"badly underpowered. The assumed difference is more likely to be missed than detected "
+                f"(missed {1 - power:.1%} of the time)."
+            )
+        case "not_a_power":
+            verdict = (
+                "not a power. The assumed difference lies in the null region of the hypothesis, "
+                f"so the test rejects at most {result.alpha:g} of the time."
+            )
+    conclusion = f"Conclusion: {verdict}"
+
+    # Line 3: assumptions
+    assumptions = (
+        f"Assumptions: a true difference (candidate - reference) of {num(result.effect)} "
+        f"and a standard deviation of the per-unit differences of {num(result.std)} "
+        f"(standardized effect {result.effect / result.std:.2f})."
+    )
+
+    # Line 4: caveat when the number is small
+    small_n = []
+    if n < SMALL_N:
+        small_n.append(
+            f"Only {n} {unit} (less than {SMALL_N}): the power is approximate and can be somewhat overestimated."
+        )
+
+    # Line 5: About the test
+    about = (
+        "About the test: power is the probability that the test rejects the null hypothesis if the assumed "
+        "difference holds. It uses a normal approximation with the standard deviation taken as known; "
+        "if the true standard deviation is larger than assumed, or is estimated from a small sample, "
+        "the actual power can be lower."
+    )
+
+    return "\n".join([head, conclusion, assumptions, *small_n, about])
 
 def interpret_effect_size(
     result: PairedEffectResult,
@@ -277,7 +421,7 @@ def interpret_effect_size(
     Returns
     -------
     str
-        A short interpretive text, with its lines separated by newlines.
+        A short interpretive text.
     """
 
     def num(x: float) -> str:
@@ -321,30 +465,30 @@ def interpret_effect_size(
     # Line 2: the conclusion
     match case:
         case "established":
-            verdict = f"difference established — the candidate is {direction}, by at least a {near_label} effect."
+            verdict = f"difference established. The candidate is {direction}, by at least a {near_label} effect."
         case "established_unclear_size":
             verdict = (
-                f"difference established — the candidate is {direction}, "
+                f"difference established. The candidate is {direction}, "
                 "but its size is unclear and may be negligible."
             )
         case "established_negligible":
-            verdict = f"difference established — the candidate is {direction}, but the effect is negligible."
+            verdict = f"difference established. The candidate is {direction}, but the effect is negligible."
         case "no_meaningful_difference":
             verdict = (
-                "no meaningful difference — effects beyond negligible are ruled out in both directions "
+                "no meaningful difference. Effects beyond negligible are ruled out in both directions "
                 "(this is not a formal equivalence test)."
             )
         case "inconclusive_one_side":
             if lower_label == "negligible":
-                ruled_out, possible, possible_label = "a decrease", "an increase", upper_label
+                ruled_out, possible, possible_label = "A decrease", "an increase", upper_label
             else:
-                ruled_out, possible, possible_label = "an increase", "a decrease", lower_label
+                ruled_out, possible, possible_label = "An increase", "a decrease", lower_label
             verdict = (
-                f"inconclusive — {ruled_out} beyond negligible is ruled out, "
+                f"inconclusive. {ruled_out} beyond negligible is ruled out, "
                 f"but {possible} up to a {possible_label} effect is not."
             )
         case "inconclusive":
-            verdict = "inconclusive — the data are compatible with a decrease, no difference, or an increase."
+            verdict = "inconclusive. The data are compatible with a decrease, no difference, or an increase."
     conclusion = f"Conclusion: {verdict}"
 
     # Line 3: zero and the plausible effects
@@ -362,12 +506,14 @@ def interpret_effect_size(
     else:
         plausible = f"Plausible effects range from a {near_label} to a {far_label} {change}."
 
+    # Line 4: caveat when the sample is small
     small_n = []
     if n < SMALL_N:
         small_n.append(
             f"Only {n} {unit} (less than {SMALL_N}): the interval is approximate and can be somewhat too narrow."
         )
 
+    # Line 5: About the test
     about = (
         f"About the test: Hedges' g is the mean paired difference ({num(result.mean_difference)}) "
         f"divided by the standard deviation of the per-unit differences ({num(result.std_difference)}), "

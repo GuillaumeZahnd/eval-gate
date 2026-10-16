@@ -3,14 +3,15 @@ from .simulation import Simulation, simulate
 from .sem import compute_sem, SEMResult
 from .confidence import confidence_bounds
 from .p_value import paired_p_value, PValueResult
-from .power import PowerResult, paired_power, required_nb_units
+from .power import PowerResult, PowerAtResult, paired_power, required_nb_units
 from ._units import paired_std
 from .effect_size import compute_paired_effect_size, PairedEffectResult
 from .interpret import (
     interpret_sem,
     interpret_p_value,
     interpret_effect_size,
-    interpret_power
+    interpret_power,
+    interpret_power_at,
 )
 
 
@@ -29,6 +30,7 @@ __all__ = [
     "interpret_p_value",
     "interpret_effect_size",
     "interpret_power",
+    "interpret_power_at",
     # confidence
     "confidence_bounds",
     # p_value
@@ -38,6 +40,7 @@ __all__ = [
     "paired_power",
     "required_nb_units",
     "PowerResult",
+    "PowerAtResult",
     # _units
     "paired_std",
     # effect_size

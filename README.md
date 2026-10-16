@@ -15,6 +15,7 @@ result = compute_sem(
   confidence=0.95,  # confidence level of the interval
   alternative_hypothesis="two_sided"  # sidedness of the interval
 )
+
 print(interpret_sem(result))
 ```
 
@@ -33,6 +34,7 @@ result = paired_p_value(
     margin=0.1,  # largest acceptable drop
     alpha=0.05,  # significance level of the decision
 )
+
 print(interpret_p_value(result))
 ```
 

@@ -101,6 +101,47 @@ def check_finite_non_negative(value: float, name: str) -> None:
     check_non_negative(value, name)
 
 
+def check_strictly_positive(value: float, name: str) -> None:
+    """Check that a value is strictly greater than zero.
+
+    Infinity is allowed; combine with ``check_finite`` (or use
+    ``check_finite_strictly_positive``) to exclude it.
+
+    Parameters
+    ----------
+    value : float
+        Value to check.
+    name : str
+        Name of the parameter, used in the error message.
+
+    Raises
+    ------
+    ValueError
+        If ``value`` is negative, null, or ``NaN``.
+    """
+    if not value > 0.0:
+        raise ValueError(f"'{name}' must be strictly positive, got {value}.")
+
+
+def check_finite_strictly_positive(value: float, name: str) -> None:
+    """Check that a value is finite and strictly greater than zero.
+
+    Parameters
+    ----------
+    value : float
+        Value to check.
+    name : str
+        Name of the parameter, used in the error message.
+
+    Raises
+    ------
+    ValueError
+        If ``value`` is infinite, ``NaN``, negative, or null.
+    """
+    check_finite(value, name)
+    check_strictly_positive(value, name)
+
+
 def check_in_open_interval(value: float, name: str, low: float, high: float) -> None:
     """Check that a value lies strictly inside an open interval.
 

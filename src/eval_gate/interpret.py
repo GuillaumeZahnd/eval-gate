@@ -353,7 +353,6 @@ def interpret_power_at(
             verdict = (
                 "not a power. The assumed difference lies in the null region of the hypothesis, "
                 f"so the test rejects at most {result.alpha:g} of the time."
-                
             )
     conclusion = f"Conclusion: {verdict}"
 

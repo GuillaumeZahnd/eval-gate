@@ -13,7 +13,7 @@ from eval_gate import (
     paired_std,
     paired_power,
     interpret_power_at
-)    
+)
 
 
 if __name__ == "__main__":
@@ -44,15 +44,16 @@ if __name__ == "__main__":
     # Variability: standard deviation of the per-unit paired differences.
     std = paired_std(reference.y, candidate.y)
 
-    # Question: what power does a study of the pilot's size (population_size units) have?
-    # Fixed: effect, nb_units, std, alpha (projections, assumed before running the experiment, not measured from data).
-    # Solved for: power.
+
+    # Question: what power does a study have?
+    # Fixed: effect, margin, nb_units, std, alpha. Solved for: power.
     achieved = paired_power(
-        nb_units=population_size,
-        effect=0.05,
-        margin=0.15,
-        std=std,
-        alternative_hypothesis=alternative_hypothesis,
-        alpha=0.05,
+        nb_units=population_size,  # given: number of units available
+        effect=0.05,  # assumed: the true difference
+        margin=0.15,  # chosen: largest difference still considered equivalent
+        std=std,  # estimated from pilot data
+        alternative_hypothesis=alternative_hypothesis,  # chosen
+        alpha=0.05,  # chosen: significance level
     )
+
     print(interpret_power_at(achieved))

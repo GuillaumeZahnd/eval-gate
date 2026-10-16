@@ -182,11 +182,12 @@ def interpret_power(
 
     The text has one line per element:
 
-    1. The required number of units, what it allows, and the power it achieves.
+    1. The required number of units, with the goal it serves and the criteria it meets
+       (target power and significance level).
     2. The assumptions behind it: the true difference and the standard deviation of the
        per-unit differences, with the resulting standardized effect.
-    3. A caveat when the sample is small (fewer than ``SMALL_N`` units).
-    4. "About the test", a sentence describing the method.
+    3. A caveat when the number is small (fewer than ``SMALL_N`` units).
+    4. "About the test", a sentence describing the method and its limits.
 
     Parameters
     ----------
@@ -203,42 +204,39 @@ def interpret_power(
     Returns
     -------
     str
-        A short interpretive text, with its lines separated by newlines.
+        A short interpretive text.
     """
 
     def num(x: float) -> str:
         return format(x, fmt)
 
     n = result.nb_units
-    effect = num(result.effect)
     margin = num(result.margin)
 
-    # Line 1: the number and its purpose
+    # Line 1: the number, its goal, and the criteria it meets
     match result.alternative_hypothesis:
         case "two_sided":
-            goal = f"to detect a true difference of {effect} in {metric}"
+            goal = f"detect a difference in {metric}"
         case "superiority":
-            goal = f"to show that the candidate's {metric} is higher, if the true difference is {effect}"
+            goal = f"show that the candidate's {metric} is higher"
         case "non_inferiority":
-            goal = (
-                f"to show that the candidate's {metric} is not worse than the reference's by {margin} or more, "
-                f"if the true difference is {effect}"
-            )
+            goal = f"show that the candidate's {metric} is not worse than the reference's by {margin} or more"
         case "equivalence":
-            goal = f"to show that the difference in {metric} is within ±{margin}, if the true difference is {effect}"
+            goal = f"show that the difference in {metric} is within ±{margin}"
 
     head = (
-        f"{n} {unit} are needed {goal}: "
-        f"{result.power:.1%} power (target {_pct(result.target_power)}) at significance level {result.alpha:g}."
+        f"{n} {unit} are needed to {goal}, "
+        f"with at least {_pct(result.target_power)} power at significance level {result.alpha:g}."
     )
 
     # Line 2: the assumptions
     assumptions = (
-        f"Assumptions: a true difference (candidate - reference) of {effect} and a standard deviation of "
-        f"the per-unit differences of {num(result.std)}, i.e. a standardized effect of {result.effect / result.std:.2f}."
+        f"Assumptions: a true difference (candidate - reference) of {num(result.effect)} "
+        f"and a standard deviation of the per-unit differences of {num(result.std)} "
+        f"(standardized effect {result.effect / result.std:.2f})."
     )
 
-    # Line 3: caveat when the sample is small
+    # Line 3: caveat when the number is small
     small_n = []
     if n < SMALL_N:
         small_n.append(
@@ -247,9 +245,10 @@ def interpret_power(
 
     # Line 4: About the test
     about = (
-        "About the test: power is the probability that the test rejects the null hypothesis when "
-        "the assumed difference is real. It uses a normal approximation with the standard deviation taken as known; "
-        "with an estimated standard deviation the actual power is somewhat lower."
+        "About the test: power is the probability that the test rejects the null hypothesis if the assumed "
+        "difference holds. It uses a normal approximation with the standard deviation taken as known; "
+        "if the true standard deviation is larger than assumed, or is estimated from a small sample, "
+        "the actual power can be lower."
     )
 
     return "\n".join([head, assumptions, *small_n, about])
@@ -296,7 +295,7 @@ def interpret_effect_size(
     Returns
     -------
     str
-        A short interpretive text, with its lines separated by newlines.
+        A short interpretive text.
     """
 
     def num(x: float) -> str:

@@ -41,8 +41,8 @@ class Simulation:
 
 def simulate(
     n: int,
-    m: int,
     *,
+    m: int = 1,
     distribution_between: Distributions = "gaussian",
     distribution_within: Distributions = "gaussian",
     mu: float = 0.0,
@@ -57,7 +57,7 @@ def simulate(
     ----------
     n : int
         Number of units.
-    m : int
+    m : int, default=1.
         Number of resamples per unit.
     distribution_between : str, default="gaussian"
         Distribution type for between-unit means.

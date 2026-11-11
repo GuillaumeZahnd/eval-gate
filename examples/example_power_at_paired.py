@@ -2,7 +2,7 @@
 Power analysis links five interdependent quantities: fixing any four determines the fifth.
 
 - effect (delta): magnitude of the true difference to detect, delta = mu_candidate - mu_reference.
-- nb_units (n): number of paired units.
+- n_units (n): number of paired units.
 - std: variability of the data, here the standard deviation of the per-unit paired differences.
 - alpha: significance level, the false-positive rate (probability of rejecting the null when it is true).
 - power (1 - beta): the true-positive rate (probability of rejecting the null when the effect is real).
@@ -19,13 +19,13 @@ from eval_gate import (
 if __name__ == "__main__":
 
     population_size = 200
-    nb_resample = 1
+    n_resample = 1
     alternative_hypothesis = "equivalence"
 
     # Pilot data, used only to estimate the variability.
     reference = simulate(
         n=population_size,
-        m=nb_resample,
+        m=n_resample,
         distribution_between="gaussian",
         mu=1.0,
         std_between=1.0,
@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     candidate = simulate(
         n=population_size,
-        m=nb_resample,
+        m=n_resample,
         distribution_between="lognormal",
         mu=1.0,
         std_between=0.5,
@@ -46,9 +46,9 @@ if __name__ == "__main__":
 
 
     # Question: what power does a study have?
-    # Fixed: effect, margin, nb_units, std, alpha. Solved for: power.
+    # Fixed: effect, margin, n_units, std, alpha. Solved for: power.
     achieved = paired_power(
-        nb_units=population_size,  # given: number of units available
+        n_units=population_size,  # given: number of units available
         effect=0.05,  # assumed: the true difference
         margin=0.15,  # chosen: largest difference still considered equivalent
         std=std,  # estimated from pilot data

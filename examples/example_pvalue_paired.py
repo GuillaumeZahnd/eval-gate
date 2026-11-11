@@ -4,12 +4,12 @@ from eval_gate import simulate, paired_p_value, interpret_paired_p_value
 if __name__ == "__main__":
 
     population_size = 200
-    nb_resample = 1
     alternative_hypothesis = "superiority"
+    n_resample = 1
 
     reference = simulate(
         n=population_size,
-        m=nb_resample,
+        m=n_resample,
         distribution_between="gaussian",
         mu=1.0,
         std_between=1.0,
@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     candidate = simulate(
         n=population_size,
-        m=nb_resample,
+        m=n_resample,        
         distribution_between="lognormal",
         mu=1.15,
         std_between=2.0,

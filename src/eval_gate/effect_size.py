@@ -60,7 +60,7 @@ class PairedEffectResult:
         The raw (unstandardized) effect ``mean(candidate - reference)``, in the units of the measurement.
     std_difference : float
         Standard deviation (``ddof=1``) of the per-unit paired differences, used as the standardizer.
-    nb_units : int
+    n_units : int
         Number of paired units analyzed.
     alpha : float
         Significance level of the confidence interval.
@@ -72,7 +72,7 @@ class PairedEffectResult:
     ci_upper: float
     mean_difference: float
     std_difference: float
-    nb_units: int
+    n_units: int
     alpha: float
 
     @property
@@ -101,9 +101,9 @@ class UnpairedEffectResult:
         The raw (unstandardized) effect ``mean(candidate) - mean(reference)``, in the units of the measurement.
     pooled_std : float
         Pooled sample standard deviation across both groups, used as the standardizer.
-    nb_units_reference : int
+    n_units_reference : int
         Number of units in the reference group.
-    nb_units_candidate : int
+    n_units_candidate : int
         Number of units in the candidate group.
     alpha : float
         Significance level of the confidence interval.
@@ -115,8 +115,8 @@ class UnpairedEffectResult:
     ci_upper: float
     mean_difference: float
     pooled_std: float
-    nb_units_reference: int
-    nb_units_candidate: int
+    n_units_reference: int
+    n_units_candidate: int
     alpha: float
 
     @property
@@ -143,7 +143,7 @@ def _compute_effect_result(
     cohens_d : float
         Standardized Cohen's d effect size.
     df_correction : int
-        Degrees of freedom used for the small-sample bias correction (e.g., ``nb_units - 1``
+        Degrees of freedom used for the small-sample bias correction (e.g., ``n_units - 1``
         for paired data or ``n_1 + n_2 - 2`` for unpaired data).
     se_d : float
         Approximate standard error of Cohen's d.
@@ -194,7 +194,7 @@ def compute_paired_effect_size(
     Parameters
     ----------
     reference : np.ndarray
-        Reference (baseline) measurements of shape ``(nb_units,)`` or ``(nb_units, nb_replicates)``.
+        Reference (baseline) measurements of shape ``(n_units,)`` or ``(n_units, nb_replicates)``.
     candidate : np.ndarray
         Candidate measurements, same number of units as ``reference``. The number of replicates may differ.
     alpha : float, default=0.05
@@ -226,8 +226,8 @@ def compute_paired_effect_size(
     differences = paired_differences(reference, candidate)
     check_all_finite(differences, "paired differences")
 
-    nb_units = differences.shape[0]
-    check_min_units(nb_units, "the effect size", minimum=_MIN_UNITS)
+    n_units = differences.shape[0]
+    check_min_units(n_units, "the effect size", minimum=_MIN_UNITS)
 
     mean_difference = float(differences.mean())
 
@@ -240,11 +240,11 @@ def compute_paired_effect_size(
 
     # Approximate standard error of Cohen's d: the 1/n term is the uncertainty on the mean difference,
     # the d**2 / (2n) term is the uncertainty on the standard deviation, which grows with the effect.
-    se_d = math.sqrt(1.0 / nb_units + cohens_d**2 / (2.0 * nb_units))
+    se_d = math.sqrt(1.0 / n_units + cohens_d**2 / (2.0 * n_units))
 
     hedges_g, ci_lower, ci_upper = _compute_effect_result(
         cohens_d=cohens_d,
-        df_correction=nb_units - 1,
+        df_correction=n_units - 1,
         se_d=se_d,
         alpha=alpha,
     )
@@ -256,7 +256,7 @@ def compute_paired_effect_size(
         ci_upper=ci_upper,
         mean_difference=mean_difference,
         std_difference=std_difference,
-        nb_units=nb_units,
+        n_units=n_units,
         alpha=alpha,
     )
 
@@ -273,7 +273,7 @@ def compute_unpaired_effect_size(
     the pooled sample standard deviation: ``(mean(candidate) - mean(reference)) / pooled_std``.
 
     Cohen's d overestimates the true effect in small samples. Hedges' g removes that bias by
-    multiplying d by a correction factor based on the total degrees of freedom (``n_reference + n_candidate - 2``).
+    multiplying d by a correction factor based on the total degrees of freedom (``n_units_reference + n_candidate - 2``).
 
     Report ``hedges_g`` as the headline value. The confidence interval is therefore given for it.
 
@@ -313,27 +313,27 @@ def compute_unpaired_effect_size(
     check_all_finite(reference_units, "reference measurements")
     check_all_finite(candidate_units, "candidate measurements")
 
-    n1 = reference_units.shape[0]
-    n2 = candidate_units.shape[0]
-    check_min_units(n1, "the reference group for the effect size", minimum=2)
-    check_min_units(n2, "the candidate group for the effect size", minimum=2)
+    n_units_reference = reference_units.shape[0]
+    n_units_candidate = candidate_units.shape[0]
+    check_min_units(n_units_reference, "the reference group for the effect size", minimum=2)
+    check_min_units(n_units_candidate, "the candidate group for the effect size", minimum=2)
 
-    df = n1 + n2 - 2
+    df = n_units_reference + n_units_candidate - 2
     if df < 1:
         raise ValueError("At least 3 total units across both groups are required to compute the unpaired effect size.")
 
-    mean_1 = float(reference_units.mean())
-    mean_2 = float(candidate_units.mean())
-    mean_difference = mean_2 - mean_1
+    mean_reference = float(reference_units.mean())
+    mean_candidate = float(candidate_units.mean())
+    mean_difference = mean_candidate - mean_reference
 
-    sum_of_squares_1 = float(np.sum((reference_units - mean_1) ** 2))
-    sum_of_squares_2 = float(np.sum((candidate_units - mean_2) ** 2))
+    sum_of_squares_reference = float(np.sum((reference_units - mean_reference) ** 2))
+    sum_of_squares_candidate = float(np.sum((candidate_units - mean_candidate) ** 2))
 
-    pooled_std = math.sqrt((sum_of_squares_1 + sum_of_squares_2) / df)
+    pooled_std = math.sqrt((sum_of_squares_reference + sum_of_squares_candidate) / df)
     check_finite_strictly_positive(pooled_std, "pooled std")
 
     cohens_d = mean_difference / pooled_std
-    se_d = math.sqrt(1.0 / n1 + 1.0 / n2 + cohens_d**2 / (2.0 * df))
+    se_d = math.sqrt(1.0 / n_units_reference + 1.0 / n_units_candidate + cohens_d**2 / (2.0 * df))
 
     hedges_g, ci_lower, ci_upper = _compute_effect_result(
         cohens_d=cohens_d,
@@ -349,7 +349,7 @@ def compute_unpaired_effect_size(
         ci_upper=ci_upper,
         mean_difference=mean_difference,
         pooled_std=pooled_std,
-        nb_units_reference=n1,
-        nb_units_candidate=n2,
+        n_units_reference=n_units_reference,
+        n_units_candidate=n_units_candidate,
         alpha=alpha,
     )

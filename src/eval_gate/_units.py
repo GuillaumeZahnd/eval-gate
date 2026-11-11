@@ -102,8 +102,7 @@ def paired_differences(reference: np.ndarray, candidate: np.ndarray) -> np.ndarr
 def paired_std(reference: np.ndarray, candidate: np.ndarray) -> float:
     """Standard deviation of the per-unit paired differences ``candidate - reference``.
 
-    Typically estimated from pilot data and passed as ``std`` to the power and
-    sample-size functions.
+    Typically estimated from pilot data and passed as ``std`` to the power and sample-size functions for paired tests.
 
     Parameters
     ----------
@@ -125,6 +124,43 @@ def paired_std(reference: np.ndarray, candidate: np.ndarray) -> float:
     differences = paired_differences(reference, candidate)
     check_min_units(differences.shape[0], what="the standard deviation", minimum=2)
     return float(differences.std(ddof=1))
+
+
+def unpaired_std(reference: np.ndarray, candidate: np.ndarray) -> float:
+    """Pooled standard deviation of two independent groups.
+
+    Typically estimated from pilot data and passed as ``std`` to the power and sample-size functions for unpaired tests.
+
+    Parameters
+    ----------
+    reference : np.ndarray
+        Reference (baseline) measurements, shape ``(nb_units,)`` or ``(nb_units, nb_replicates)``.
+    candidate : np.ndarray
+        Candidate measurements. The number of units and replicates may differ.
+
+    Returns
+    -------
+    float
+        Pooled sample standard deviation of the two groups, after averaging replicates within each unit.
+
+    Notes
+    -----
+    Replicates are averaged within each unit first. The groups may have different numbers of units and replicates.
+    """
+    reference_units = unit_means(reference)
+    candidate_units = unit_means(candidate)
+
+    n_units_reference = reference_units.shape[0]
+    n_units_candidate = candidate_units.shape[0]
+
+    check_min_units(n_units_reference, what="the standard deviation", minimum=2)
+    check_min_units(n_units_candidate, what="the standard deviation", minimum=2)
+
+    sum_of_squares_reference = float(np.sum((reference_units - reference_units.mean()) ** 2))
+    sum_of_squares_candidate = float(np.sum((candidate_units - candidate_units.mean()) ** 2))
+    df = n_units_reference + n_units_candidate - 2
+
+    return float(math.sqrt((sum_of_squares_reference + sum_of_squares_candidate) / df))
 
 
 class UnpairedDifference(NamedTuple):

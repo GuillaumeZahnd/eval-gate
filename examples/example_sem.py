@@ -4,7 +4,7 @@ from eval_gate import simulate, compute_sem, interpret_sem
 if __name__ == "__main__":
 
     population_size = 500
-    nb_resample = 10
+    nb_resample = 1
 
     measurements = simulate(
         n=population_size,
@@ -17,3 +17,6 @@ if __name__ == "__main__":
     )
 
     print(interpret_sem(result))
+    
+    from plot_simu import plot_simulation
+    plot_simulation(measurements)

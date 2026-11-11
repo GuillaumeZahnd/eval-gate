@@ -22,7 +22,7 @@ def make_result(effect: float) -> PairedEffectResult:
         ci_upper=effect + 1.0,
         mean_difference=1.0,
         std_difference=1.0,
-        nb_units=10,
+        n_units=10,
         alpha=0.05,
     )
 
@@ -33,7 +33,7 @@ class TestKnownValues:
         assert result.cohens_d == pytest.approx(D)
         assert result.mean_difference == pytest.approx(3.0)
         assert result.std_difference == pytest.approx(math.sqrt(2.5))
-        assert result.nb_units == 5
+        assert result.n_units == 5
         assert result.alpha == 0.05
 
     def test_hedges_g_applies_exact_correction(self):
@@ -63,10 +63,10 @@ class TestKnownValues:
         assert abs(result.hedges_g) < abs(result.cohens_d)
         assert result.hedges_g == pytest.approx(result.cohens_d, rel=1e-3)
 
-    @pytest.mark.parametrize("nb_units, factor", [(5, 0.80), (10, 0.91), (20, 0.96), (100, 0.99)])
-    def test_correction_factor_matches_the_values_quoted_in_the_docstring(self, nb_units, factor):
-        candidate = np.arange(1.0, nb_units + 1.0)
-        result = compute_paired_effect_size(np.zeros(nb_units), candidate)
+    @pytest.mark.parametrize("n_units, factor", [(5, 0.80), (10, 0.91), (20, 0.96), (100, 0.99)])
+    def test_correction_factor_matches_the_values_quoted_in_the_docstring(self, n_units, factor):
+        candidate = np.arange(1.0, n_units + 1.0)
+        result = compute_paired_effect_size(np.zeros(n_units), candidate)
         assert result.hedges_g / result.cohens_d == pytest.approx(factor, abs=0.005)
 
 
@@ -166,7 +166,7 @@ class TestMagnitude:
             ci_upper=1.0,
             mean_difference=1.0,
             std_difference=1.0,
-            nb_units=5,
+            n_units=5,
             alpha=0.05,
         )
         assert result.magnitude == "small"
@@ -186,11 +186,11 @@ class TestInputValidation:
         with pytest.raises(ValueError, match="strictly positive"):
             compute_paired_effect_size(A, A + 1.0)
 
-    @pytest.mark.parametrize("nb_units", [1, 2])
-    def test_fewer_than_three_units_raise(self, nb_units):
+    @pytest.mark.parametrize("n_units", [1, 2])
+    def test_fewer_than_three_units_raise(self, n_units):
         # With 2 units the Hedges correction factor is exactly 0, which would silently give g = 0.
         with pytest.raises(ValueError, match="At least 3 units"):
-            compute_paired_effect_size(A[:nb_units], B[:nb_units])
+            compute_paired_effect_size(A[:n_units], B[:n_units])
 
     def test_different_number_of_units_raises(self):
         with pytest.raises(ValueError, match="Number of units differs"):

@@ -2,13 +2,16 @@ from .standardized_distribution import standardized_distribution, DISTRIBUTIONS
 from .simulation import Simulation, simulate
 from .sem import compute_sem, SEMResult
 from .confidence import confidence_bounds
-from .p_value import paired_p_value, PValueResult
+from .p_value import (
+    paired_p_value,
+    PairedPValueResult,
+)
 from .power import PowerResult, PowerAtResult, paired_power, required_nb_units
 from ._units import paired_std
 from .effect_size import compute_paired_effect_size, PairedEffectResult
 from .interpret import (
     interpret_sem,
-    interpret_p_value,
+    interpret_paired_p_value,
     interpret_effect_size,
     interpret_power,
     interpret_power_at,
@@ -25,17 +28,11 @@ __all__ = [
     # sem
     "compute_sem",
     "SEMResult",
-    # interpret
-    "interpret_sem",
-    "interpret_p_value",
-    "interpret_effect_size",
-    "interpret_power",
-    "interpret_power_at",
     # confidence
     "confidence_bounds",
     # p_value
     "paired_p_value",
-    "PValueResult",
+    "PairedPValueResult",
     # power
     "paired_power",
     "required_nb_units",
@@ -46,4 +43,10 @@ __all__ = [
     # effect_size
     "compute_paired_effect_size",
     "PairedEffectResult",
+    # interpret
+    "interpret_sem",
+    "interpret_paired_p_value",
+    "interpret_effect_size",
+    "interpret_power",
+    "interpret_power_at",    
 ]

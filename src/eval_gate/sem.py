@@ -4,7 +4,7 @@ import numpy as np
 
 from .confidence import confidence_bounds
 from ._units import mean_and_se
-from ._checks import check_probability
+from ._checks import check_in_open_interval_0_1
 
 
 # Intervals that make sense for a plain mean: there is no reference and no margin.
@@ -86,7 +86,7 @@ def compute_sem(
             f"'alternative_hypothesis' must be one of {SEM_ALTERNATIVES} for a single mean, "
             f"got {alternative_hypothesis!r}."
         )
-    check_probability(confidence, "confidence")
+    check_in_open_interval_0_1(confidence, "confidence")
 
     mean, sem, nb_units = mean_and_se(outcomes)
 

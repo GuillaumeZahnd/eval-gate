@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass
 from scipy.stats import norm
 
 from .core import AlternativeHypothesis, Direction, get_spec
-from ._checks import check_probability, check_finite_strictly_positive, check_finite
+from ._checks import check_in_open_interval_0_1, check_finite_strictly_positive, check_finite
 
 
 _MAX_NB_UNITS = 10**9  # Upper limit of the search for the required number of units.
@@ -77,7 +77,7 @@ class PowerResult:
 
 def _validate_inputs(effect: float, std: float, alpha: float) -> None:
     """Validate the numeric inputs shared by the power functions."""
-    check_probability(alpha, "alpha")
+    check_in_open_interval_0_1(alpha, "alpha")
     check_finite_strictly_positive(std, "std")
     check_finite(effect, "effect")
 
@@ -228,7 +228,7 @@ def required_nb_units(
     ValueError
         If more than ``10**9`` units would be needed.
     """
-    check_probability(power, "power")
+    check_in_open_interval_0_1(power, "power")
     spec = get_spec(alternative_hypothesis)
     m = spec.margin_for(margin)
     _validate_inputs(effect, std, alpha)

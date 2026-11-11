@@ -2,7 +2,7 @@ import math
 from scipy.stats import norm
 
 from .core import AlternativeHypothesis, get_spec
-from ._checks import check_probability, check_finite_non_negative
+from ._checks import check_in_open_interval_0_1, check_finite_non_negative
 
 
 def confidence_bounds(
@@ -40,7 +40,7 @@ def confidence_bounds(
     tuple[float, float]
         ``(lower bound, upper bound)``
     """
-    check_probability(alpha, "alpha")
+    check_in_open_interval_0_1(alpha, "alpha")
     check_finite_non_negative(se, "se")
 
     spec = get_spec(alternative_hypothesis)

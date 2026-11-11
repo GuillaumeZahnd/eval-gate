@@ -5,7 +5,12 @@ import numpy as np
 
 from ._units import paired_differences
 from .confidence import confidence_bounds
-from ._checks import check_all_finite, check_finite_non_negative, check_min_units, check_probability
+from ._checks import (
+    check_all_finite,
+    check_finite_non_negative,
+    check_min_units,
+    check_in_open_interval_0_1
+)
 
 
 EffectMagnitude = Literal["negligible", "small", "medium", "large"]
@@ -137,7 +142,7 @@ def compute_paired_effect_size(
     approximation error of the interval: for small ``n`` the interval is still approximate, and an
     exact interval based on the non-central t distribution is more accurate there.
     """
-    check_probability(alpha, "alpha")
+    check_in_open_interval_0_1(alpha, "alpha")
 
     differences = paired_differences(reference, candidate)
     check_all_finite(differences, "paired differences")

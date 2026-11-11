@@ -5,7 +5,7 @@ import numpy as np
 
 from eval_gate._checks import (
     check_in_open_interval,
-    check_probability,
+    check_in_open_interval_0_1,
     check_min_units,
     check_finite,
     check_non_negative,    
@@ -71,21 +71,21 @@ class TestCheckInOpenInterval:
 class TestCheckProbability:
     @pytest.mark.parametrize("value", [1e-12, 0.01, 0.05, 0.5, 0.95, 0.999, 1.0 - 1e-12])
     def test_accepts_values_in_open_unit_interval(self, value):
-        assert check_probability(value, "confidence") is None
+        assert check_in_open_interval_0_1(value, "confidence") is None
 
     @pytest.mark.parametrize("value", [0.0, 1.0, -0.1, 1.5, 95, -math.inf, math.inf, float("nan")])
     def test_rejects_values_outside_open_unit_interval(self, value):
         with pytest.raises(ValueError):
-            check_probability(value, "confidence")
+            check_in_open_interval_0_1(value, "confidence")
 
     @pytest.mark.parametrize("name", ["confidence", "alpha", "power"])
     def test_error_message_contains_parameter_name(self, name):
         with pytest.raises(ValueError, match=rf"^'{name}' must be in"):
-            check_probability(1.5, name)
+            check_in_open_interval_0_1(1.5, name)
 
     def test_error_message_format(self):
         with pytest.raises(ValueError) as excinfo:
-            check_probability(1.5, "confidence")
+            check_in_open_interval_0_1(1.5, "confidence")
         assert str(excinfo.value) == "'confidence' must be in (0.0, 1.0), got 1.5."
 
 

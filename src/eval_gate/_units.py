@@ -122,3 +122,51 @@ def paired_std(reference: np.ndarray, candidate: np.ndarray) -> float:
     differences = paired_differences(reference, candidate)
     check_min_units(differences.shape[0], what="the standard deviation", minimum=2)
     return float(differences.std(ddof=1))
+
+
+class UnpairedDifference(NamedTuple):
+    """Difference between two independent group means, with its standard error.
+
+    Attributes
+    ----------
+    estimate : float
+        ``mean(candidate) - mean(reference)``.
+    se : float
+        Welch standard error, ``sqrt(se_reference**2 + se_candidate**2)``; the group variances are not assumed equal.
+    nb_units_reference : int
+        Number of units in the reference group.
+    nb_units_candidate : int
+        Number of units in the candidate group.
+    """
+    estimate: float
+    se: float
+    nb_units_reference: int
+    nb_units_candidate: int
+
+
+def unpaired_difference(reference: np.ndarray, candidate: np.ndarray) -> UnpairedDifference:
+    """Compute the difference of two independent group means (candidate - reference) and its standard error.
+
+    Each group is summarized by :func:`mean_and_se` (replicates averaged within each unit). The groups may have a
+    different number of units.
+
+    Parameters
+    ----------
+    reference : np.ndarray
+        Reference (baseline) measurements, shape ``(nb_units,)`` or ``(nb_units, nb_replicates)``.
+    candidate : np.ndarray
+        Candidate measurements. The number of units and replicates may differ.
+
+    Returns
+    -------
+    UnpairedDifference
+        Difference, Welch standard error, and the number of units in each group.
+    """
+    r = mean_and_se(reference)
+    c = mean_and_se(candidate)
+    return UnpairedDifference(
+        estimate=c.mean - r.mean,
+        se=math.hypot(r.se, c.se),
+        nb_units_reference=r.nb_units,
+        nb_units_candidate=c.nb_units,
+    )

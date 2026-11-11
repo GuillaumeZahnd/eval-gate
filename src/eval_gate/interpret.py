@@ -1,5 +1,5 @@
 from .sem import SEMResult
-from .p_value import PValueResult
+from .p_value import PairedPValueResult
 from .power import PowerResult, PowerAtResult
 from .effect_size import PairedEffectResult, magnitude_label
 
@@ -76,8 +76,8 @@ def interpret_sem(
     return " ".join([head, body, *notes])
 
 
-def interpret_p_value(
-    result: PValueResult,
+def interpret_paired_p_value(
+    result: PairedPValueResult,
     *,
     metric: str = "mean outcome",
     fmt: str = ".3f",
@@ -91,7 +91,7 @@ def interpret_p_value(
 
     Parameters
     ----------
-    result : PValueResult
+    result : PairedPValueResult
         The result object returned by ``paired_p_value``. It carries the hypothesis,
         the margin, the significance level, the estimate and the number of units
         used in the test.

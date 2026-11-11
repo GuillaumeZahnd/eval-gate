@@ -3,9 +3,10 @@ from eval_gate import simulate, unpaired_p_value, interpret_unpaired_p_value
 
 if __name__ == "__main__":
 
-    # Independent groups: different units, so the sizes may differ and the seeds are not shared.
+    # Groups are independent
     nb_units_reference = 200
     nb_units_candidate = 50
+    
     nb_resample = 1
     alternative_hypothesis = "non_inferiority"
 

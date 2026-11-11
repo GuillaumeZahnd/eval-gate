@@ -7,9 +7,10 @@ from ._units import mean_and_se
 from ._checks import check_in_open_interval_0_1
 
 
-# Intervals that make sense for a plain mean: there is no reference and no margin.
+# Alternatives that make sense for a single mean: a two-sided interval, or a one-sided lower bound.
+# "non_inferiority" and "equivalence" are excluded because they compare against a reference and need a margin.
 SEMAlternative = Literal["two_sided", "superiority"]
-SEM_ALTERNATIVES: tuple[str, ...] = get_args(SEMAlternative)
+SEM_ALTERNATIVES: tuple[SEMAlternative, ...] = get_args(SEMAlternative)
 
 
 @dataclass(frozen=True)
@@ -44,10 +45,13 @@ class SEMResult:
 
 def compute_sem(
     outcomes: np.ndarray,
+    *,
     confidence: float = 0.95,
     alternative_hypothesis: SEMAlternative = "two_sided",
 ) -> SEMResult:
     """Compute the standard error of the mean (SEM) and a confidence interval for the mean.
+
+    The interval uses the normal approximation: with few units it can be somewhat too narrow.
 
     Parameters
     ----------
@@ -55,9 +59,8 @@ def compute_sem(
         Measured outcomes, one entry per unit. Either:
 
         - shape ``(nb_units,)``: one outcome per unit.
-        - shape ``(nb_units, nb_replicates_per_unit)``: replicates are first averaged within each
-          unit so the SEM is clustered at the unit level, then these unit means are treated as
-          independent draws.
+        - shape ``(nb_units, nb_replicates_per_unit)``: replicates are first averaged within each unit, so
+          the SEM is clustered at the unit level, then these unit means are treated as independent draws.
     confidence : float, default=0.95
         Confidence level of the interval, strictly between 0 and 1.
     alternative_hypothesis : {"two_sided", "superiority"}, default="two_sided"
@@ -80,6 +83,8 @@ def compute_sem(
     ------
     ValueError
         If ``alternative_hypothesis`` is not ``"two_sided"`` or ``"superiority"``.
+        If ``confidence`` is not strictly between 0 and 1.
+        If ``outcomes`` is not 1D or 2D, has fewer than 2 units, or contains non-finite values.
     """
     if alternative_hypothesis not in SEM_ALTERNATIVES:
         raise ValueError(

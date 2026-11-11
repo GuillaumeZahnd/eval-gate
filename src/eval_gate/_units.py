@@ -2,7 +2,7 @@ import math
 import numpy as np
 from typing import NamedTuple
 
-from ._checks import check_min_units
+from ._checks import check_min_units, check_all_finite
 
 
 class MeanSE(NamedTuple):
@@ -62,8 +62,11 @@ def mean_and_se(outcomes: np.ndarray) -> MeanSE:
         Mean, standard error and number of units.
     """
     u = unit_means(outcomes)
+    check_all_finite(u, "outcomes")
+
     n = u.shape[0]
     check_min_units(n, what="the standard error", minimum=2)
+
     return MeanSE(float(u.mean()), float(u.std(ddof=1) / math.sqrt(n)), n)
 
 

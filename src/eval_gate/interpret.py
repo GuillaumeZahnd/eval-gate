@@ -1,5 +1,5 @@
 from .sem import SEMResult
-from .p_value import PairedPValueResult
+from .p_value import PairedPValueResult, UnpairedPValueResult
 from .power import PowerResult, PowerAtResult
 from .effect_size import PairedEffectResult, magnitude_label
 
@@ -76,30 +76,31 @@ def interpret_sem(
     return " ".join([head, body, *notes])
 
 
-def interpret_paired_p_value(
-    result: PairedPValueResult,
+def _interpret_p_value(
+    result: PairedPValueResult | UnpairedPValueResult,
     *,
-    metric: str = "mean outcome",
-    fmt: str = ".3f",
+    metric: str,
+    fmt: str,
+    sizes: str,
+    smallest: int,
+    smallest_label: str,
 ) -> str:
-    """Return a one-paragraph plain-language reading of a ``paired_p_value`` result.
-
-    The paragraph opens with the p-value and the decision at the result's significance
-    level, then explains what the p-value means under the null hypothesis, what can
-    (and cannot) be concluded, the observed difference, and a caveat when the sample
-    is small.
+    """Return the one-paragraph reading shared by the paired and unpaired p-value interpretations.
 
     Parameters
     ----------
-    result : PairedPValueResult
-        The result object returned by ``paired_p_value``. It carries the hypothesis,
-        the margin, the significance level, the estimate and the number of units
-        used in the test.
-    metric : str, default="mean outcome"
+    result : PairedPValueResult or UnpairedPValueResult
+        The p-value result to read.
+    metric : str
         What is being compared, e.g. ``"mean accuracy"``.
-    fmt : str, default=".3f"
-        Format spec for the margin, estimate and standard error; ``".1%"`` prints
-        proportions as percentages.
+    fmt : str
+        Format spec for the margin, estimate and standard error.
+    sizes : str
+        Sample size(s) shown next to the estimate, e.g. ``"12 units"``.
+    smallest : int
+        Size of the smallest sample behind the test, compared with ``SMALL_N``.
+    smallest_label : str
+        How the smallest sample is named in the small-sample caveat, e.g. ``"Only 12 units"``.
 
     Returns
     -------
@@ -118,57 +119,134 @@ def interpret_paired_p_value(
             null = "there were no difference between the candidate and the reference"
             direction = "higher" if result.estimate > 0 else "lower"
             if_rejected = f"The candidate's {metric} differs from the reference's: it is {direction}."
-            if_not = (
+            if_not_rejected = (
                 "A difference cannot be established. This does not show that the two are equal, "
                 "only that the data do not rule out no difference."
             )
         case "superiority":
-            null = "the candidate were no better than the reference"
+            null = "the candidate were no higher than the reference"
             if_rejected = f"There is evidence that the candidate's {metric} is higher than the reference's."
-            if_not = (
-                "Superiority is not established. The candidate may still be better, "
+            if_not_rejected = (
+                "Superiority is not established. The candidate may still be higher, "
                 "but the data are not strong enough to say so."
             )
         case "non_inferiority":
-            null = f"the candidate were worse than the reference by {m} or more"
+            null = f"the candidate were lower than the reference by {m} or more"
             if_rejected = (
-                f"A drop of {m} or more is ruled out. The candidate may be equal or better; "
+                f"A drop of {m} or more is ruled out. The candidate may be equal or higher; "
                 "this test does not distinguish between the two."
             )
-            if_not = (
+            if_not_rejected = (
                 f"Non-inferiority is not established: a drop of {m} or more cannot be ruled out. "
-                "This does not show that the candidate is worse."
+                "This does not show that the candidate is lower."
             )
         case "equivalence":
             null = f"the true difference were {m} or more in either direction"
             if_rejected = f"The difference between the candidate and the reference is within ±{m}."
-            if_not = (
+            if_not_rejected = (
                 f"Equivalence is not established: a difference of {m} or more in at least one "
                 "direction cannot be ruled out."
             )
 
     head = (
+        "[RESULT] "
         f"{_fmt_p(result.p_value)} (significance level {result.alpha:g}): "
         f"the null hypothesis is {'rejected' if significant else 'not rejected'}."
     )
-    meaning = (
+    conclusion = (
+        "[CONCLUSION] "
+        f"{if_rejected if significant else if_not_rejected}"
+    )
+    about = (
+        "[ABOUT] "
         f"This p-value is the probability, if {null}, of a result at least as favourable "
         "to the alternative as the one observed."
     )
-    conclusion = if_rejected if significant else if_not
 
-    notes = [
+    note_parts = [
         f"The observed difference (candidate - reference) is {num(result.estimate)} "
-        f"(SE {num(result.se)}, {result.nb_units} units)."
+        f"(SE {num(result.se)}, {sizes})."
     ]
-    if significant:
-        notes.append("A small p-value shows that a difference is detectable, not that it is large.")
-    if result.nb_units < SMALL_N:
-        notes.append(
-            f"Only {result.nb_units} units (less than {SMALL_N}): "
+    if significant and result.alternative_hypothesis in ("two_sided", "superiority"):
+        note_parts.append("A small p-value shows that a difference is detectable, not that it is large.")
+    if smallest < SMALL_N:
+        note_parts.append(
+            f"{smallest_label} (less than {SMALL_N}): "
             "the normal approximation can make the p-value somewhat too small."
         )
-    return " ".join([head, meaning, conclusion, *notes])
+    notes = "[NOTES] " + " ".join(note_parts)
+
+    return "\n".join([head, conclusion, about, notes])
+
+
+def interpret_paired_p_value(
+    result: PairedPValueResult,
+    *,
+    metric: str = "mean outcome",
+    fmt: str = ".3f",
+) -> str:
+    """Return a one-paragraph plain-language reading of a ``paired_p_value`` result.
+
+    Parameters
+    ----------
+    result : PairedPValueResult
+        The result object returned by ``paired_p_value``. It carries the hypothesis, the margin, the significance
+        level, the estimate, and the number of units used in the test.
+    metric : str, default="mean outcome"
+        What is being compared, e.g. ``"mean accuracy"``.
+    fmt : str, default=".3f"
+        Format spec for the margin, estimate, and standard error; ``".1%"`` prints proportions as percentages.
+
+    Returns
+    -------
+    str
+        A one-paragraph interpretive summary.
+    """
+    n = result.nb_units
+    return _interpret_p_value(
+        result,
+        metric=metric,
+        fmt=fmt,
+        sizes=f"{n} units",
+        smallest=n,
+        smallest_label=f"Only {n} units",
+    )
+
+
+def interpret_unpaired_p_value(
+    result: UnpairedPValueResult,
+    *,
+    metric: str = "mean outcome",
+    fmt: str = ".3f",
+) -> str:
+    """Return a one-paragraph plain-language reading of an ``unpaired_p_value`` result.
+
+    Parameters
+    ----------
+    result : UnpairedPValueResult
+        The result object returned by ``unpaired_p_value``. It carries the hypothesis, the margin, the significance
+        level, the estimate and the size of each group.
+    metric : str, default="mean outcome"
+        What is being compared, e.g. ``"mean accuracy"``.
+    fmt : str, default=".3f"
+        Format spec for the margin, estimate, and standard error; ``".1%"`` prints proportions as percentages.
+
+    Returns
+    -------
+    str
+        A one-paragraph interpretive summary.
+    """
+    n_reference = result.nb_units_reference
+    n_candidate = result.nb_units_candidate
+    smallest = min(n_reference, n_candidate)
+    return _interpret_p_value(
+        result,
+        metric=metric,
+        fmt=fmt,
+        sizes=f"{n_reference} reference and {n_candidate} candidate units",
+        smallest=smallest,
+        smallest_label=f"The smaller group has only {smallest} units",
+    )
 
 
 def interpret_power(
@@ -220,7 +298,7 @@ def interpret_power(
         case "superiority":
             goal = f"show that the candidate's {metric} is higher"
         case "non_inferiority":
-            goal = f"show that the candidate's {metric} is not worse than the reference's by {margin} or more"
+            goal = f"show that the candidate's {metric} is not lower than the reference's by {margin} or more"
         case "equivalence":
             goal = f"show that the difference in {metric} is within ±{margin}"
 
@@ -311,7 +389,7 @@ def interpret_power_at(
         case "superiority":
             goal = f"show that the candidate's {metric} is higher"
         case "non_inferiority":
-            goal = f"show that the candidate's {metric} is not worse than the reference's by {margin} or more"
+            goal = f"show that the candidate's {metric} is not lower than the reference's by {margin} or more"
         case "equivalence":
             goal = f"show that the difference in {metric} is within ±{margin}"
 
@@ -379,6 +457,7 @@ def interpret_power_at(
     )
 
     return "\n".join([head, conclusion, assumptions, *small_n, about])
+
 
 def interpret_effect_size(
     result: PairedEffectResult,

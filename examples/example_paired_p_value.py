@@ -1,4 +1,4 @@
-from eval_gate import simulate, paired_p_value, interpret_p_value
+from eval_gate import simulate, paired_p_value, interpret_paired_p_value
 
 
 if __name__ == "__main__":
@@ -31,4 +31,4 @@ if __name__ == "__main__":
         alternative_hypothesis=alternative_hypothesis,
     )
 
-    print(interpret_p_value(result))
+    print(interpret_paired_p_value(result))

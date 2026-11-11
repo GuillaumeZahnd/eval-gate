@@ -3,11 +3,11 @@ from dataclasses import dataclass
 from typing import Literal
 import numpy as np
 
-from ._units import paired_differences
+from ._units import paired_differences, unit_means
 from .confidence import confidence_bounds
 from ._checks import (
     check_all_finite,
-    check_finite_non_negative,
+    check_finite_strictly_positive,
     check_min_units,
     check_in_open_interval_0_1
 )
@@ -81,9 +81,88 @@ class PairedEffectResult:
         return magnitude_label(self.hedges_g)
 
 
+@dataclass(frozen=True)
+class UnpairedEffectResult:
+    """Result of a standardized effect size analysis for unpaired (independent groups) data.
+
+    Attributes
+    ----------
+    cohens_d : float
+        Standardized effect size (Cohen's ``d``): ``(mean(candidate) - mean(reference)) / pooled_std``.
+        Positive means the candidate is higher than the reference. Inflated in small samples.
+    hedges_g : float
+        Small-sample bias-corrected effect size (Hedges' g) using the pooled standard deviation.
+        Prefer it to ``cohens_d`` as the headline estimate; the confidence interval refers to it.
+    ci_lower : float
+        Lower bound of the confidence interval for ``hedges_g`` at level ``1 - alpha``.
+    ci_upper : float
+        Upper bound of the confidence interval for ``hedges_g`` at level ``1 - alpha``.
+    mean_difference : float
+        The raw (unstandardized) effect ``mean(candidate) - mean(reference)``, in the units of the measurement.
+    pooled_std : float
+        Pooled sample standard deviation across both groups, used as the standardizer.
+    nb_units_reference : int
+        Number of units in the reference group.
+    nb_units_candidate : int
+        Number of units in the candidate group.
+    alpha : float
+        Significance level of the confidence interval.
+    """
+
+    cohens_d: float
+    hedges_g: float
+    ci_lower: float
+    ci_upper: float
+    mean_difference: float
+    pooled_std: float
+    nb_units_reference: int
+    nb_units_candidate: int
+    alpha: float
+
+    @property
+    def magnitude(self) -> EffectMagnitude:
+        """Rough verbal label for ``|hedges_g|``, using Cohen's convention: negligible, small, medium or large."""
+        return magnitude_label(self.hedges_g)
+
+
 def _hedges_correction(df: int) -> float:
     """Exact small-sample bias correction factor ``J(df)`` for a standardized mean difference."""
     return math.exp(math.lgamma(df / 2.0) - math.lgamma((df - 1) / 2.0)) / math.sqrt(df / 2.0)
+
+
+def _compute_effect_result(
+    cohens_d: float,
+    df_correction: int,
+    se_d: float,
+    alpha: float,
+) -> tuple[float, float, float]:
+    """Compute Hedges' g, its standard error, and confidence bounds from Cohen's d and se_d.
+
+    Parameters
+    ----------
+    cohens_d : float
+        Standardized Cohen's d effect size.
+    df_correction : int
+        Degrees of freedom used for the small-sample bias correction (e.g., ``nb_units - 1``
+        for paired data or ``n_1 + n_2 - 2`` for unpaired data).
+    se_d : float
+        Approximate standard error of Cohen's d.
+    alpha : float
+        Significance level for the confidence interval, in ``(0, 1)``.
+
+    Returns
+    -------
+    tuple[float, float, float]
+        A tuple containing:
+        - Hedges' g corrected effect size.
+        - Lower bound of the confidence interval for Hedges' g.
+        - Upper bound of the confidence interval for Hedges' g.
+    """
+    correction = _hedges_correction(df_correction)
+    hedges_g = cohens_d * correction
+    se_g = correction * se_d
+    ci_lower, ci_upper = confidence_bounds("two_sided", hedges_g, se_g, alpha=alpha)
+    return hedges_g, ci_lower, ci_upper
 
 
 def compute_paired_effect_size(
@@ -151,31 +230,24 @@ def compute_paired_effect_size(
     check_min_units(nb_units, "the effect size", minimum=_MIN_UNITS)
 
     mean_difference = float(differences.mean())
-    std_difference = float(differences.std(ddof=1))
-    check_finite_non_negative(std_difference, "std")
-    if std_difference == 0.0:
-        raise ValueError("All paired differences are identical, so the standardized effect is undefined.")
 
-    correction = _hedges_correction(nb_units - 1)
+    std_difference = float(differences.std(ddof=1))
+    check_finite_strictly_positive(std_difference, "std")
 
     # Cohen's d: the mean difference expressed in standard deviations of the differences, so effects
     # can be compared across metrics (0.5 means the average gain is half a typical per-unit spread).
     cohens_d = mean_difference / std_difference
 
-    # Hedges' g: Cohen's d shrunk by the correction factor (about 0.80 with 5 units, 0.96 with 20) to
-    # remove its small-sample upward bias; prefer it to d below about 20 units, above which the two
-    # are nearly equal.
-    hedges_g = cohens_d * correction
-
     # Approximate standard error of Cohen's d: the 1/n term is the uncertainty on the mean difference,
     # the d**2 / (2n) term is the uncertainty on the standard deviation, which grows with the effect.
     se_d = math.sqrt(1.0 / nb_units + cohens_d**2 / (2.0 * nb_units))
 
-    # The factor that shrinks d to g shrinks its standard error by the same amount.
-    se_g = correction * se_d
-
-    # Always two-sided: an effect size is reported as a range around the estimate, not as a one-sided bound.
-    ci_lower, ci_upper = confidence_bounds("two_sided", hedges_g, se_g, alpha=alpha)
+    hedges_g, ci_lower, ci_upper = _compute_effect_result(
+        cohens_d=cohens_d,
+        df_correction=nb_units - 1,
+        se_d=se_d,
+        alpha=alpha,
+    )
 
     return PairedEffectResult(
         cohens_d=cohens_d,
@@ -185,5 +257,99 @@ def compute_paired_effect_size(
         mean_difference=mean_difference,
         std_difference=std_difference,
         nb_units=nb_units,
+        alpha=alpha,
+    )
+
+
+def compute_unpaired_effect_size(
+    reference: np.ndarray,
+    candidate: np.ndarray,
+    *,
+    alpha: float = 0.05,
+) -> UnpairedEffectResult:
+    """Compute standardized effect sizes (Cohen's d and Hedges' g) for independent groups (unpaired measurements).
+
+    The effect size measures the magnitude of the difference between two independent group means relative to
+    the pooled sample standard deviation: ``(mean(candidate) - mean(reference)) / pooled_std``.
+
+    Cohen's d overestimates the true effect in small samples. Hedges' g removes that bias by
+    multiplying d by a correction factor based on the total degrees of freedom (``n_reference + n_candidate - 2``).
+
+    Report ``hedges_g`` as the headline value. The confidence interval is therefore given for it.
+
+    Parameters
+    ----------
+    reference : np.ndarray
+        Reference (baseline) measurements of shape ``(nb_reference,)`` or ``(nb_reference, k)``.
+    candidate : np.ndarray
+        Candidate measurements of shape ``(nb_candidate,)`` or ``(nb_candidate, k)``. The number of replicates
+        may differ from ``reference``.
+    alpha : float, default=0.05
+        Significance level for the confidence interval, in ``(0, 1)``.
+
+    Returns
+    -------
+    UnpairedEffectResult
+        Cohen's d, Hedges' g, the confidence interval for Hedges' g, the raw mean difference,
+        the pooled standard deviation, group sizes, and the analysis parameters.
+
+    Raises
+    ------
+    ValueError
+        If ``alpha`` is not in ``(0, 1)``, if either group has fewer than 2 units, if the total degrees
+        of freedom is less than 1, if the data are not finite, or if all values across both groups are
+        identical (the pooled standard deviation is then zero and the standardized effect is undefined).
+
+    Notes
+    -----
+    The interval is centred on ``hedges_g`` and uses the large-sample normal approximation
+    ``se(g) = J * sqrt(1/n_1 + 1/n_2 + d**2 / (2 * df))``, where ``J`` is the correction factor
+    and ``df = n_1 + n_2 - 2``.
+    """
+    check_in_open_interval_0_1(alpha, "alpha")
+
+    reference_units = unit_means(reference)
+    candidate_units = unit_means(candidate)
+    check_all_finite(reference_units, "reference measurements")
+    check_all_finite(candidate_units, "candidate measurements")
+
+    n1 = reference_units.shape[0]
+    n2 = candidate_units.shape[0]
+    check_min_units(n1, "the reference group for the effect size", minimum=2)
+    check_min_units(n2, "the candidate group for the effect size", minimum=2)
+
+    df = n1 + n2 - 2
+    if df < 1:
+        raise ValueError("At least 3 total units across both groups are required to compute the unpaired effect size.")
+
+    mean_1 = float(reference_units.mean())
+    mean_2 = float(candidate_units.mean())
+    mean_difference = mean_2 - mean_1
+
+    sum_of_squares_1 = float(np.sum((reference_units - mean_1) ** 2))
+    sum_of_squares_2 = float(np.sum((candidate_units - mean_2) ** 2))
+
+    pooled_std = math.sqrt((sum_of_squares_1 + sum_of_squares_2) / df)
+    check_finite_strictly_positive(pooled_std, "pooled std")
+
+    cohens_d = mean_difference / pooled_std
+    se_d = math.sqrt(1.0 / n1 + 1.0 / n2 + cohens_d**2 / (2.0 * df))
+
+    hedges_g, ci_lower, ci_upper = _compute_effect_result(
+        cohens_d=cohens_d,
+        df_correction=df,
+        se_d=se_d,
+        alpha=alpha,
+    )
+
+    return UnpairedEffectResult(
+        cohens_d=cohens_d,
+        hedges_g=hedges_g,
+        ci_lower=ci_lower,
+        ci_upper=ci_upper,
+        mean_difference=mean_difference,
+        pooled_std=pooled_std,
+        nb_units_reference=n1,
+        nb_units_candidate=n2,
         alpha=alpha,
     )

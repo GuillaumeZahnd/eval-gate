@@ -178,13 +178,13 @@ class TestInputValidation:
         with pytest.raises(ValueError, match="alpha"):
             compute_paired_effect_size(A, B, alpha=alpha)
 
-    def test_identical_differences_raise(self):
-        with pytest.raises(ValueError, match="identical"):
-            compute_paired_effect_size(A, A + 1.0)
-
-    def test_identical_arrays_raise(self):
-        with pytest.raises(ValueError, match="identical"):
+    def test_identical_inputs_raise_zero_std(self):
+        with pytest.raises(ValueError, match="strictly positive"):
             compute_paired_effect_size(A, A)
+
+    def test_constant_offset_raise_zero_std(self):
+        with pytest.raises(ValueError, match="strictly positive"):
+            compute_paired_effect_size(A, A + 1.0)
 
     @pytest.mark.parametrize("nb_units", [1, 2])
     def test_fewer_than_three_units_raise(self, nb_units):

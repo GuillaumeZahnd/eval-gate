@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from .sem import SEMResult
 from .p_value import PairedPValueResult, UnpairedPValueResult
 from .power import (
@@ -20,6 +22,19 @@ def _pct(x: float) -> str:
 def _fmt_p(p: float) -> str:
     """Format a p-value for prose, e.g. ``0.0123`` -> ``"p = 0.012"``, ``1e-6`` -> ``"p < 0.001"``."""
     return "p < 0.001" if p < 0.001 else f"p = {p:.3f}"
+
+
+def _report(result: str, verdict: str, caveats: Sequence[str] = ()) -> str:
+    """Join the three blocks of an interpretation: result, verdict and, only when there are any, caveats."""
+    return "\n".join([f"[RESULT] {result}", f"[VERDICT] {verdict}", *(f"[CAVEAT] {c}" for c in caveats)])
+
+
+def _caveat_small_n(n: int, unit: str, consequence: str, *, smaller_group: bool = False) -> list[str]:
+    """Return the small-sample caveat as a list of zero or one line (empty when ``n`` is at least ``SMALL_N``)."""
+    if n >= SMALL_N:
+        return []
+    subject = f"The smaller group has only {n} {unit}" if smaller_group else f"Only {n} {unit}"
+    return [f"{subject} (less than {SMALL_N}): {consequence}."]
 
 
 def interpret_sem(
@@ -62,30 +77,26 @@ def interpret_sem(
     ci_upper = num(result.ci_upper)
 
     # [RESULT]
-    head = f"[RESULT] The {metric} is estimated at {num(result.mean)} (SEM {num(result.sem)}, {n} {unit})."
+    numbers = f"The {metric} is estimated at {num(result.mean)} (SEM {num(result.sem)}, {n} {unit})."
 
     # [VERDICT]
     if alternative_hypothesis == "two_sided":
         verdict = f"With {level} confidence, the true {metric} lies between {ci_lower} and {ci_upper}."
     elif alternative_hypothesis == "superiority":
         verdict = f"With {level} confidence, the true {metric} is at least {ci_lower}."
-    verdict = f"[VERDICT] {verdict}"
 
     # [CAVEAT]
     caveats = []
+    """
     if result.sem == 0:
         caveats.append(
-            "[CAVEAT] "
             f"All {unit} gave the same outcome, so the interval has zero width "
             "(this reflects the sample, not certainty about the population)."
         )
-    if n < SMALL_N:
-        caveats.append(
-            "[CAVEAT] "
-            f"Only {n} {unit} (less than {SMALL_N}): the normal approximation can make the interval somewhat too narrow."
-        )
+    """        
+    caveats = _caveat_small_n(n, unit, "the normal approximation can make the interval somewhat too narrow")
 
-    return " ".join([head, verdict, *caveats])
+    return _report(numbers, verdict, caveats)
 
 
 def _interpret_p_value(
@@ -95,9 +106,9 @@ def _interpret_p_value(
     fmt: str,
     sizes: str,
     smallest: int,
-    smallest_label: str,
+    smaller_group: bool,
 ) -> str:
-    """Return the one-paragraph reading shared by the paired and unpaired p-value interpretations.
+    """Return the interpretation shared by the paired and unpaired p-value results.
 
     Parameters
     ----------
@@ -111,84 +122,68 @@ def _interpret_p_value(
         Sample size(s) shown next to the estimate, e.g. ``"12 units"``.
     smallest : int
         Size of the smallest sample behind the test, compared with ``SMALL_N``.
-    smallest_label : str
-        How the smallest sample is named in the small-sample caveat, e.g. ``"Only 12 units"``.
+    smaller_group : bool
+        Whether ``smallest`` is the smaller of two independent groups (unpaired test) or the number
+        of paired units (paired test); it only changes the wording of the small-sample caveat.
 
     Returns
     -------
     str
-        A one-paragraph interpretive summary.
+        The ``[RESULT]`` and ``[VERDICT]`` lines, followed by one ``[CAVEAT]`` line per caveat.
     """
 
     def num(x: float) -> str:
         return format(x, fmt)
 
     m = num(result.margin)
-    significant = result.reject
 
+    # Verdict: a status headline, then one plain sentence
     match result.alternative_hypothesis:
         case "two_sided":
-            null = "there were no difference between the candidate and the reference"
             direction = "higher" if result.estimate > 0 else "lower"
-            if_rejected = f"The candidate's {metric} differs from the reference's: it is {direction}."
+            if_rejected = f"Difference established. The candidate's {metric} is {direction} than the reference's."
             if_not_rejected = (
-                "A difference cannot be established. This does not show that the two are equal, "
+                "Difference not established. This does not show that the two are equal, "
                 "only that the data do not rule out no difference."
             )
         case "superiority":
-            null = "the candidate were no higher than the reference"
-            if_rejected = f"There is evidence that the candidate's {metric} is higher than the reference's."
+            if_rejected = f"Superiority established. The candidate's {metric} is higher than the reference's."
             if_not_rejected = (
-                "Superiority is not established. The candidate may still be higher, "
+                "Superiority not established. The candidate may still be higher, "
                 "but the data are not strong enough to say so."
             )
         case "non_inferiority":
-            null = f"the candidate were lower than the reference by {m} or more"
             if_rejected = (
-                f"A drop of {m} or more is ruled out. The candidate may be equal or higher; "
-                "this test does not distinguish between the two."
+                f"Non-inferiority established. A drop of {m} or more is ruled out; "
+                "the candidate may be equal or higher."
             )
             if_not_rejected = (
-                f"Non-inferiority is not established: a drop of {m} or more cannot be ruled out. "
-                "This does not show that the candidate is lower."
+                f"Non-inferiority not established. A drop of {m} or more cannot be ruled out; "
+                "this does not show that the candidate is lower."
             )
         case "equivalence":
-            null = f"the true difference were {m} or more in either direction"
-            if_rejected = f"The difference between the candidate and the reference is within ±{m}."
+            if_rejected = f"Equivalence established. The difference between the candidate and the reference is within ±{m}."
             if_not_rejected = (
-                f"Equivalence is not established: a difference of {m} or more in at least one "
+                f"Equivalence not established. A difference of {m} or more in at least one "
                 "direction cannot be ruled out."
             )
+    verdict = if_rejected if result.reject else if_not_rejected
 
-    head = (
-        "[RESULT] "
-        f"{_fmt_p(result.p_value)} (significance level {result.alpha:g}): "
-        f"the null hypothesis is {'rejected' if significant else 'not rejected'}."
-    )
-    conclusion = (
-        "[CONCLUSION] "
-        f"{if_rejected if significant else if_not_rejected}"
-    )
-    about = (
-        "[ABOUT] "
-        f"This p-value is the probability, if {null}, of a result at least as favourable "
-        "to the alternative as the one observed."
+    # Result: the numbers only
+    numbers = (
+        f"{_fmt_p(result.p_value)} (significance level {result.alpha:g}). "
+        f"Observed difference (candidate - reference): {num(result.estimate)} (SE {num(result.se)}, {sizes})."
     )
 
-    note_parts = [
-        f"The observed difference (candidate - reference) is {num(result.estimate)} "
-        f"(SE {num(result.se)}, {sizes})."
-    ]
-    if significant and result.alternative_hypothesis in ("two_sided", "superiority"):
-        note_parts.append("A small p-value shows that a difference is detectable, not that it is large.")
-    if smallest < SMALL_N:
-        note_parts.append(
-            f"{smallest_label} (less than {SMALL_N}): "
-            "the normal approximation can make the p-value somewhat too small."
-        )
-    notes = "[NOTES] " + " ".join(note_parts)
+    # Caveats: only when triggered
+    caveats = _caveat_small_n(
+        smallest,
+        "units",
+        "the normal approximation can make the p-value somewhat too small",
+        smaller_group=smaller_group,
+    )
 
-    return "\n".join([head, conclusion, about, notes])
+    return _report(numbers, verdict, caveats)
 
 
 def interpret_paired_p_value(
@@ -212,7 +207,7 @@ def interpret_paired_p_value(
     Returns
     -------
     str
-        A one-paragraph interpretive summary.
+        The ``[RESULT]`` and ``[VERDICT]`` lines, followed by one ``[CAVEAT]`` line per caveat.
     """
     n = result.n_units
     return _interpret_p_value(
@@ -221,7 +216,7 @@ def interpret_paired_p_value(
         fmt=fmt,
         sizes=f"{n} units",
         smallest=n,
-        smallest_label=f"Only {n} units",
+        smaller_group=False,
     )
 
 
@@ -246,7 +241,7 @@ def interpret_unpaired_p_value(
     Returns
     -------
     str
-        A one-paragraph interpretive summary.
+        The ``[RESULT]`` and ``[VERDICT]`` lines, followed by one ``[CAVEAT]`` line per caveat.
     """
     n_reference = result.n_units_reference
     n_candidate = result.n_units_candidate
@@ -257,7 +252,7 @@ def interpret_unpaired_p_value(
         fmt=fmt,
         sizes=f"{n_reference} reference and {n_candidate} candidate units",
         smallest=smallest,
-        smallest_label=f"The smaller group has only {smallest} units",
+        smaller_group=True,
     )
 
 
@@ -484,7 +479,7 @@ def interpret_paired_power_at(
     else:
         case = "badly_underpowered"
 
-    # Line 2: conclusion
+    # [VERDICT]
     match case:
         case "adequate":
             verdict = f"adequate. The assumed difference would be detected {power:.1%} of the time (at least the usual 80%)."
@@ -503,7 +498,7 @@ def interpret_paired_power_at(
                 "not a power. The assumed difference lies in the null region of the hypothesis, "
                 f"so the test rejects at most {result.alpha:g} of the time."
             )
-    conclusion = f"Conclusion: {verdict}"
+    verdict = f"[VERDICT] {verdict}"
 
     # Line 3: assumptions
     assumptions = (
@@ -513,11 +508,8 @@ def interpret_paired_power_at(
     )
 
     # Line 4: caveat when the number is small
-    small_n = []
-    if n < SMALL_N:
-        small_n.append(
-            f"Only {n} {unit} (less than {SMALL_N}): the power is approximate and can be somewhat overestimated."
-        )
+    caveats = _caveat_small_n(n, unit, "the normal approximation can make the power somewhat overestimated")
+
 
     # Line 5: About the test
     about = (
@@ -527,7 +519,7 @@ def interpret_paired_power_at(
         "the actual power can be lower."
     )
 
-    return "\n".join([head, conclusion, assumptions, *small_n, about])
+    return "\n".join([head, verdict, assumptions, *small_n, about])
 
 
 def interpret_unpaired_power_at():

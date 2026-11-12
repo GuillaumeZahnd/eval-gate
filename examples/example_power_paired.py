@@ -11,7 +11,7 @@ Power analysis links five interdependent quantities: fixing any four determines 
 from eval_gate import (
     simulate,
     paired_std,
-    required_n_units,
+    required_paired_n_units,
     interpret_paired_power,
 )
 
@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     # Question: how many units are needed to detect an effect?
     # Fixed: effect, std, alpha, power. Solved for: n_units.
-    design = required_n_units(
+    design = required_paired_n_units(
         effect=0.15,  # assumed: the smallest true difference worth detecting
         std=std,  # estimated from pilot data
         alternative_hypothesis="superiority",  # chosen

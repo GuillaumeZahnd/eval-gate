@@ -103,6 +103,14 @@ def paired_p_value(
     ------
     ValueError
         If the standard error is zero.
+
+    Notes
+    -----
+    The p-value is the probability, if the null hypothesis holds, of a result at least as favorable to the
+    alternative as the one observed. It is not the probability that the null hypothesis is true.
+
+    For ``"two_sided"`` and ``"superiority"``, a small p-value shows that a difference is detectable,
+    not that it is large: report an effect size alongside it.
     """
     check_in_open_interval_0_1(alpha, "alpha")
 
@@ -212,6 +220,14 @@ def unpaired_p_value(
     ------
     ValueError
         If a group has fewer than 2 units, or if the standard error is zero.
+
+    Notes
+    -----
+    The p-value is the probability, if the null hypothesis holds, of a result at least as favorable to the
+    alternative as the one observed. It is not the probability that the null hypothesis is true.
+
+    For ``"two_sided"`` and ``"superiority"``, a small p-value shows that a difference is detectable,
+    not that it is large: report an effect size alongside it.
     """
     check_in_open_interval_0_1(alpha, "alpha")
 

@@ -288,7 +288,6 @@ def compute_unpaired_effect_size(
     candidate : np.ndarray
         Candidate measurements of shape ``(n_units_candidate,)`` or ``(n_units_candidate, n_replicates)``.
         The number of replicates may differ from ``reference``.
-        may differ from ``reference``.
     alpha : float, default=0.05
         Significance level for the confidence interval, in ``(0, 1)``.
 

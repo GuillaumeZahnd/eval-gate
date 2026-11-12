@@ -45,15 +45,15 @@ if __name__ == "__main__":
     std = unpaired_std(reference.y, candidate.y)
 
     # Question: how many units are needed to detect an effect?
-    # Fixed: effect, std, alpha, power. Solved for: n_units.
+    # Fixed: effect, margin, std, alpha, power, allocation_ratio. Solved for: n_units_reference and n_units_candidate.
     result = required_unpaired_n_units(
         effect=0.1,  # assumed: the smallest true difference worth detecting
         std=std,  # estimated from pilot data
-        alternative_hypothesis="equivalence",  # chosen
+        alternative_hypothesis="equivalence",  # chosen: alternative hypothesis
         power=0.8,  # chosen: target power
         alpha=0.05,  # chosen: significance level
-        margin=0.5,  # TODO
-        allocation_ratio=1.0,  # ratio of candidate units to reference units
+        margin=0.5,  # chosen: largest difference still considered equivalent
+        allocation_ratio=1.0,  # chosen: ratio of candidate units to reference units
     )
 
     print(interpret_unpaired_power(result))

@@ -44,11 +44,7 @@ def interpret_sem(
     unit: str = "units",
     fmt: str = ".3f",
 ) -> str:
-    """Return a one-paragraph plain-language reading of a ``compute_sem`` result.
-
-    The paragraph states the estimate and its standard error, what the confidence
-    interval says about the true mean, and caveats when the sample is degenerate
-    (zero standard error) or small (fewer than ``SMALL_N`` units).
+    """Return a plain-language reading of a ``compute_sem`` result.
 
     Parameters
     ----------
@@ -64,7 +60,7 @@ def interpret_sem(
     Returns
     -------
     str
-        A one-paragraph interpretive summary.
+        The ``[RESULT]`` and ``[VERDICT]`` lines, followed by one ``[CAVEAT]`` line per caveat.
     """
 
     def num(x: float) -> str:
@@ -72,7 +68,6 @@ def interpret_sem(
 
     level = _pct(result.confidence)
     n = result.n_units
-    alternative_hypothesis = result.alternative_hypothesis
     ci_lower = num(result.ci_lower)
     ci_upper = num(result.ci_upper)
 
@@ -80,21 +75,19 @@ def interpret_sem(
     numbers = f"The {metric} is estimated at {num(result.mean)} (SEM {num(result.sem)}, {n} {unit})."
 
     # [VERDICT]
-    if alternative_hypothesis == "two_sided":
-        verdict = f"With {level} confidence, the true {metric} lies between {ci_lower} and {ci_upper}."
-    elif alternative_hypothesis == "superiority":
-        verdict = f"With {level} confidence, the true {metric} is at least {ci_lower}."
+    match result.alternative_hypothesis:
+        case "two_sided":
+            verdict = f"With {level} confidence, the true {metric} lies between {ci_lower} and {ci_upper}."
+        case "superiority":
+            verdict = f"With {level} confidence, the true {metric} is at least {ci_lower}."
 
     # [CAVEAT]
-    caveats = []
-    """
+    caveats = _caveat_small_n(n, unit, "the normal approximation can make the interval somewhat too narrow")
     if result.sem == 0:
         caveats.append(
             f"All {unit} gave the same outcome, so the interval has zero width "
             "(this reflects the sample, not certainty about the population)."
         )
-    """        
-    caveats = _caveat_small_n(n, unit, "the normal approximation can make the interval somewhat too narrow")
 
     return _report(numbers, verdict, caveats)
 
@@ -108,7 +101,7 @@ def _interpret_p_value(
     smallest: int,
     smaller_group: bool,
 ) -> str:
-    """Return the interpretation shared by the paired and unpaired p-value results.
+    """Return a plain-language reading of a ``paired_p_value`` or ``unpaired_p_value`` result, shared by both.
 
     Parameters
     ----------
@@ -192,7 +185,7 @@ def interpret_paired_p_value(
     metric: str = "mean outcome",
     fmt: str = ".3f",
 ) -> str:
-    """Return a one-paragraph plain-language reading of a ``paired_p_value`` result.
+    """Return a plain-language reading of a ``paired_p_value`` result.
 
     Parameters
     ----------
@@ -226,7 +219,7 @@ def interpret_unpaired_p_value(
     metric: str = "mean outcome",
     fmt: str = ".3f",
 ) -> str:
-    """Return a one-paragraph plain-language reading of an ``unpaired_p_value`` result.
+    """Return a plain-language reading of a ``unpaired_p_value`` result.
 
     Parameters
     ----------
@@ -289,7 +282,7 @@ def interpret_paired_power(
     Returns
     -------
     str
-        A short interpretive text.
+        The ``[RESULT]`` and ``[VERDICT]`` lines, followed by one ``[CAVEAT]`` line per caveat.
     """
 
     def num(x: float) -> str:
@@ -438,7 +431,7 @@ def interpret_paired_power_at(
     Returns
     -------
     str
-        A short interpretive text, with its lines separated by newlines.
+        The ``[RESULT]`` and ``[VERDICT]`` lines, followed by one ``[CAVEAT]`` line per caveat.
     """
 
     def num(x: float) -> str:
@@ -652,7 +645,7 @@ def interpret_paired_effect_size(
     Returns
     -------
     str
-        A short plain-language reading of a ``compute_paired_effect_size`` result.
+        The ``[RESULT]`` and ``[VERDICT]`` lines, followed by one ``[CAVEAT]`` line per caveat.
     """
     n = result.n_units
 
@@ -694,7 +687,7 @@ def interpret_unpaired_effect_size(
     Returns
     -------
     str
-        A short plain-language reading of a ``compute_unpaired_effect_size`` result.
+        The ``[RESULT]`` and ``[VERDICT]`` lines, followed by one ``[CAVEAT]`` line per caveat.
     """
     n_reference = result.n_units_reference
     n_candidate = result.n_units_candidate

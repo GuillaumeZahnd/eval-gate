@@ -67,6 +67,10 @@ def mean_and_se(outcomes: np.ndarray) -> MeanSE:
     n = u.shape[0]
     check_min_units(n, what="the standard error", minimum=2)
 
+    # Identical values must give exactly 0: a floating-point mean can leave a ~1e-17 residual in the std.
+    if np.ptp(u) == 0:
+        return MeanSE(float(u[0]), 0.0, n)
+
     return MeanSE(float(u.mean()), float(u.std(ddof=1) / math.sqrt(n)), n)
 
 

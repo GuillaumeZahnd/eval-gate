@@ -1,11 +1,11 @@
 import math
 from dataclasses import FrozenInstanceError
+
 import numpy as np
 import pytest
 from scipy.stats import norm
 
 from eval_gate.sem import SEM_ALTERNATIVES, compute_sem
-
 
 # 1..5 has mean 3 and std(ddof=1) = sqrt(2.5), so the standard error is sqrt(2.5 / 5) = sqrt(0.5).
 OUTCOMES = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
@@ -68,7 +68,9 @@ class TestInterval:
 
     @pytest.mark.parametrize("confidence", [0.8, 0.9, 0.95, 0.99])
     def test_superiority_is_a_one_sided_lower_bound(self, confidence):
-        result = compute_sem(OUTCOMES, confidence=confidence, alternative_hypothesis="superiority")
+        result = compute_sem(
+            OUTCOMES, confidence=confidence, alternative_hypothesis="superiority"
+        )
         assert result.ci_lower == pytest.approx(MEAN - norm.ppf(confidence) * SEM)
         assert result.ci_upper == math.inf
 
@@ -109,7 +111,9 @@ class TestResult:
         assert result.alternative_hypothesis == "two_sided"
 
     def test_result_echoes_the_inputs(self):
-        result = compute_sem(OUTCOMES, confidence=0.9, alternative_hypothesis="superiority")
+        result = compute_sem(
+            OUTCOMES, confidence=0.9, alternative_hypothesis="superiority"
+        )
         assert result.confidence == 0.9
         assert result.alternative_hypothesis == "superiority"
         assert result.n_units == 5
@@ -128,7 +132,9 @@ class TestResult:
 
 
 class TestInputValidation:
-    @pytest.mark.parametrize("alternative", ["non_inferiority", "equivalence", "greater", ""])
+    @pytest.mark.parametrize(
+        "alternative", ["non_inferiority", "equivalence", "greater", ""]
+    )
     def test_unsupported_alternative_raises(self, alternative):
         with pytest.raises(ValueError, match="'alternative_hypothesis'"):
             compute_sem(OUTCOMES, alternative_hypothesis=alternative)
@@ -138,7 +144,9 @@ class TestInputValidation:
         with pytest.raises(ValueError, match="'confidence'"):
             compute_sem(OUTCOMES, confidence=confidence)
 
-    @pytest.mark.parametrize("outcomes", [np.array([1.0]), np.array([]), np.ones((1, 3))])
+    @pytest.mark.parametrize(
+        "outcomes", [np.array([1.0]), np.array([]), np.ones((1, 3))]
+    )
     def test_fewer_than_two_units_raises(self, outcomes):
         with pytest.raises(ValueError, match="At least 2 units"):
             compute_sem(outcomes)

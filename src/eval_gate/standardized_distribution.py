@@ -1,6 +1,6 @@
-import numpy as np
 from typing import Literal, get_args
 
+import numpy as np
 
 Distributions = Literal["gaussian", "uniform", "student_t", "lognormal", "bimodal"]
 DISTRIBUTIONS = get_args(Distributions)
@@ -39,7 +39,9 @@ def standardized_distribution(
             raise ValueError(f"'n_units' must be >= 1, got {n_units}.")
     else:
         if any(dim < 1 for dim in n_units):
-            raise ValueError(f"All dimensions in 'n_units' must be >= 1, got {n_units}.")
+            raise ValueError(
+                f"All dimensions in 'n_units' must be >= 1, got {n_units}."
+            )
 
     if distribution.lower() == "gaussian":
         return rng.standard_normal(n_units)
@@ -62,4 +64,6 @@ def standardized_distribution(
         return (signs + 0.5 * rng.standard_normal(n_units)) / np.sqrt(1.25)
 
     else:
-        raise ValueError(f"'distribution' must be one of {DISTRIBUTIONS}, got '{distribution}'.")
+        raise ValueError(
+            f"'distribution' must be one of {DISTRIBUTIONS}, got '{distribution}'."
+        )

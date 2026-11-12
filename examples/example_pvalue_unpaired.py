@@ -1,8 +1,6 @@
-from eval_gate import simulate, unpaired_p_value, interpret_unpaired_p_value
-
+from eval_gate import interpret_unpaired_p_value, simulate, unpaired_p_value
 
 if __name__ == "__main__":
-
     # Groups are independent
     n_units_reference = 200
     n_units_candidate = 50

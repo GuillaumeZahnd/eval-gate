@@ -1,8 +1,10 @@
-from eval_gate import simulate, compute_unpaired_effect_size, interpret_unpaired_effect_size
-
+from eval_gate import (
+    compute_unpaired_effect_size,
+    interpret_unpaired_effect_size,
+    simulate,
+)
 
 if __name__ == "__main__":
-
     # Groups are independent
     n_units_reference = 2_000
     n_units_candidate = 700
@@ -35,4 +37,3 @@ if __name__ == "__main__":
     )
 
     print(interpret_unpaired_effect_size(result))
-

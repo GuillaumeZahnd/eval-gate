@@ -1,10 +1,14 @@
 import math
 from dataclasses import asdict, dataclass
+
 from scipy.stats import norm
 
+from ._checks import (
+    check_finite,
+    check_finite_strictly_positive,
+    check_in_open_interval_0_1,
+)
 from .core import AlternativeHypothesis, Direction, get_spec
-from ._checks import check_in_open_interval_0_1, check_finite_strictly_positive, check_finite
-
 
 _MAX_N_UNITS = 10**9  # Upper limit of the search for the required number of units.
 
@@ -373,7 +377,9 @@ def required_unpaired_n_units(
     """
     check_in_open_interval_0_1(power, "power")
     if allocation_ratio <= 0:
-        raise ValueError(f"Allocation ratio must be strictly positive, got {allocation_ratio}.")
+        raise ValueError(
+            f"Allocation ratio must be strictly positive, got {allocation_ratio}."
+        )
 
     spec = get_spec(alternative_hypothesis)
     m = spec.margin_for(margin)
@@ -382,7 +388,12 @@ def required_unpaired_n_units(
 
     def reaches_target(n_ref: int) -> bool:
         n_cand = max(2, round(n_ref * allocation_ratio))
-        return _compute_unpaired_power(spec.direction, n_ref, n_cand, effect, std, m, alpha) >= power
+        return (
+            _compute_unpaired_power(
+                spec.direction, n_ref, n_cand, effect, std, m, alpha
+            )
+            >= power
+        )
 
     hi_ref = _find_required_n(reaches_target)
     hi_cand = max(2, round(hi_ref * allocation_ratio))
@@ -407,7 +418,9 @@ def _find_required_n(reaches_target, max_units: int = _MAX_N_UNITS) -> int:
         lo = hi
         hi = min(hi * 2, max_units)
         if hi == max_units:
-            raise ValueError(f"More than {max_units} units would be needed; check 'effect' and 'std'.")
+            raise ValueError(
+                f"More than {max_units} units would be needed; check 'effect' and 'std'."
+            )
     while lo < hi:
         mid = (lo + hi) // 2
         if reaches_target(mid):
@@ -446,7 +459,9 @@ def _validate_inputs(effect: float, std: float, alpha: float) -> None:
     check_finite(effect, "effect")
 
 
-def _validate_effect(name: str, direction: Direction, effect: float, margin: float) -> None:
+def _validate_effect(
+    name: str, direction: Direction, effect: float, margin: float
+) -> None:
     """Validate that the assumed effect lies in the alternative hypothesis."""
     match direction:
         case "two_sided":
@@ -459,7 +474,9 @@ def _validate_effect(name: str, direction: Direction, effect: float, margin: flo
             ok = abs(effect) < margin
             target_region = f"strictly within ±{margin:g}"
     if not ok:
-        raise ValueError(f"For '{name}', 'effect' must be {target_region}, got {effect}.")
+        raise ValueError(
+            f"For '{name}', 'effect' must be {target_region}, got {effect}."
+        )
 
 
 def _core_power(

@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+
 import numpy as np
 
-from .standardized_distribution import standardized_distribution, Distributions
+from .standardized_distribution import Distributions, standardized_distribution
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,7 @@ class Simulation:
     var_within : float
         True average within-unit variance.
     """
+
     y: np.ndarray
     mu_i: np.ndarray
     grand_mean: float

@@ -1,8 +1,9 @@
 import math
+
 from scipy.stats import norm
 
+from ._checks import check_finite_non_negative, check_in_open_interval_0_1
 from .core import AlternativeHypothesis, get_spec
-from ._checks import check_in_open_interval_0_1, check_finite_non_negative
 
 
 def confidence_bounds(

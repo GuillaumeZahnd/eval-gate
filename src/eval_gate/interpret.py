@@ -1,18 +1,19 @@
 from collections.abc import Sequence
 
-from .sem import SEMResult
-from .p_value import PairedPValueResult, UnpairedPValueResult
-from .power import (
-    PairedPowerResult,
-    UnpairedPowerResult,
-    PairedPowerAtResult,
-    UnpairedPowerAtResult,
-)
 from .core import AlternativeHypothesis
 from .effect_size import PairedEffectResult, UnpairedEffectResult, magnitude_label
+from .p_value import PairedPValueResult, UnpairedPValueResult
+from .power import (
+    PairedPowerAtResult,
+    PairedPowerResult,
+    UnpairedPowerAtResult,
+    UnpairedPowerResult,
+)
+from .sem import SEMResult
 
-
-SMALL_N = 30  # Below this many units, the normal approximation can be noticeably optimistic
+SMALL_N = (
+    30  # Below this many units, the normal approximation can be noticeably optimistic
+)
 
 
 def _pct(x: float) -> str:
@@ -27,19 +28,33 @@ def _fmt_p(p: float) -> str:
 
 def _report(result: str, verdict: str, caveats: Sequence[str] = ()) -> str:
     """Join the three blocks of an interpretation: result, verdict and, only when there are any, caveats."""
-    return "\n".join([f"[RESULT] {result}", f"[VERDICT] {verdict}", *(f"[CAVEAT] {c}" for c in caveats)])
+    return "\n".join(
+        [
+            f"[RESULT] {result}",
+            f"[VERDICT] {verdict}",
+            *(f"[CAVEAT] {c}" for c in caveats),
+        ]
+    )
 
 
-def _caveat_small_n(n: int, unit: str, consequence: str, *, smaller_group: bool = False) -> list[str]:
+def _caveat_small_n(
+    n: int, unit: str, consequence: str, *, smaller_group: bool = False
+) -> list[str]:
     """Return the small-sample caveat as a list of zero or one line (empty when ``n`` is at least ``SMALL_N``)."""
     if n >= SMALL_N:
         return []
-    subject = f"The smaller group has only {n} {unit}" if smaller_group else f"Only {n} {unit}"
+    subject = (
+        f"The smaller group has only {n} {unit}"
+        if smaller_group
+        else f"Only {n} {unit}"
+    )
     return [f"{subject} (less than {SMALL_N}): {consequence}."]
+
 
 # ----------------------------------------------------------------
 # Standard error of the mean
 # ----------------------------------------------------------------
+
 
 def interpret_sem(
     result: SEMResult,
@@ -83,10 +98,14 @@ def interpret_sem(
         case "two_sided":
             verdict = f"With {level} confidence, the true {metric} lies between {ci_lower} and {ci_upper}."
         case "superiority":
-            verdict = f"With {level} confidence, the true {metric} is at least {ci_lower}."
+            verdict = (
+                f"With {level} confidence, the true {metric} is at least {ci_lower}."
+            )
 
     # Caveats: small-sample (only when triggered), identical outcome (only when triggered)
-    caveats = _caveat_small_n(n, unit, "the normal approximation can make the interval somewhat too narrow")
+    caveats = _caveat_small_n(
+        n, unit, "the normal approximation can make the interval somewhat too narrow"
+    )
     if result.sem == 0:
         caveats.append(
             f"All {unit} gave the same outcome, so the interval has zero width "
@@ -95,9 +114,11 @@ def interpret_sem(
 
     return _report(numbers, verdict, caveats)
 
+
 # ----------------------------------------------------------------
 # p-value
 # ----------------------------------------------------------------
+
 
 def _interpret_p_value(
     result: PairedPValueResult | UnpairedPValueResult,
@@ -255,11 +276,15 @@ def interpret_unpaired_p_value(
         smaller_group=True,
     )
 
+
 # ----------------------------------------------------------------
 # Power analysis (required n)
 # ----------------------------------------------------------------
 
-def _power_goal(alternative_hypothesis: AlternativeHypothesis, metric: str, margin: str) -> str:
+
+def _power_goal(
+    alternative_hypothesis: AlternativeHypothesis, metric: str, margin: str
+) -> str:
     """Return what a rejected null hypothesis shows, e.g. ``"show that the candidate's mean outcome is higher"``."""
     match alternative_hypothesis:
         case "two_sided":
@@ -419,11 +444,18 @@ def interpret_unpaired_power(
         smaller_group=True,
     )
 
+
 # ----------------------------------------------------------------
 # Power analysis (power at)
 # ----------------------------------------------------------------
 
-def _power_status(alternative_hypothesis: AlternativeHypothesis, effect: float, margin: float, power: float) -> str:
+
+def _power_status(
+    alternative_hypothesis: AlternativeHypothesis,
+    effect: float,
+    margin: float,
+    power: float,
+) -> str:
     """Classify a power result as ``"not_a_power"``, ``"adequate"``, ``"underpowered"`` or ``"badly_underpowered"``.
 
     ``"not_a_power"`` means the assumed ``effect`` lies in the null region of the hypothesis, where the
@@ -499,7 +531,9 @@ def _interpret_power_at(
     )
 
     # Verdict: what the numbers achieve
-    match _power_status(result.alternative_hypothesis, result.effect, result.margin, power):
+    match _power_status(
+        result.alternative_hypothesis, result.effect, result.margin, power
+    ):
         case "adequate":
             verdict = (
                 f"Adequate. Under these assumptions, the test would {goal} {power:.1%} of the time "
@@ -528,7 +562,9 @@ def _interpret_power_at(
         "the normal approximation can make the power somewhat overestimated",
         smaller_group=smaller_group,
     )
-    caveats.append("The power is only as reliable as the assumed difference and standard deviation.")
+    caveats.append(
+        "The power is only as reliable as the assumed difference and standard deviation."
+    )
 
     return _report(numbers, verdict, caveats)
 
@@ -611,9 +647,11 @@ def interpret_unpaired_power_at(
         smaller_group=True,
     )
 
+
 # ----------------------------------------------------------------
 # Effect size
 # ----------------------------------------------------------------
+
 
 def _interpret_effect_size(
     result: PairedEffectResult | UnpairedEffectResult,
@@ -683,15 +721,21 @@ def _interpret_effect_size(
     upper_label = magnitude_label(upper)
     # When zero lies outside the interval, g has the sign of the whole interval, so the end
     # nearest to zero is the lower one if g > 0 and the upper one otherwise.
-    near_label, far_label = (lower_label, upper_label) if g > 0 else (upper_label, lower_label)
+    near_label, far_label = (
+        (lower_label, upper_label) if g > 0 else (upper_label, lower_label)
+    )
     # Number of interval ends that are negligible (0, 1 or 2). With zero outside the interval, a single
     # negligible end is necessarily the nearest one.
     n_negligible_bounds = (lower_label == "negligible") + (upper_label == "negligible")
 
     if zero_inside:
-        case = ("inconclusive", "inconclusive_one_side", "no_meaningful_difference")[n_negligible_bounds]
+        case = ("inconclusive", "inconclusive_one_side", "no_meaningful_difference")[
+            n_negligible_bounds
+        ]
     else:
-        case = ("established", "established_unclear_size", "established_negligible")[n_negligible_bounds]
+        case = ("established", "established_unclear_size", "established_negligible")[
+            n_negligible_bounds
+        ]
 
     # Verdict: what the numbers achieve
     claim = f"The candidate's {metric} is {direction} than the reference's"
@@ -713,9 +757,17 @@ def _interpret_effect_size(
             verdict = "No meaningful difference. Effects beyond negligible are ruled out in both directions."
         case "inconclusive_one_side":
             if lower_label == "negligible":
-                ruled_out, possible, possible_label = "A decrease", "an increase", upper_label
+                ruled_out, possible, possible_label = (
+                    "A decrease",
+                    "an increase",
+                    upper_label,
+                )
             else:
-                ruled_out, possible, possible_label = "An increase", "a decrease", lower_label
+                ruled_out, possible, possible_label = (
+                    "An increase",
+                    "a decrease",
+                    lower_label,
+                )
             verdict = (
                 f"Inconclusive. {ruled_out} beyond negligible is ruled out, "
                 f"but {possible} up to a {possible_label} effect is not."
@@ -729,7 +781,10 @@ def _interpret_effect_size(
         caveats.append("This is not a formal equivalence test.")
     caveats.extend(
         _caveat_small_n(
-            smallest, unit, "the normal approximation can make the interval somewhat too narrow", smaller_group=smaller_group
+            smallest,
+            unit,
+            "the normal approximation can make the interval somewhat too narrow",
+            smaller_group=smaller_group,
         )
     )
 

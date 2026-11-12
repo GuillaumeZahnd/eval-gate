@@ -9,15 +9,13 @@ Power analysis links five interdependent quantities: fixing any four determines 
 """
 
 from eval_gate import (
+    interpret_unpaired_power_at,
     simulate,
-    unpaired_std,
     unpaired_power,
-    interpret_unpaired_power_at
+    unpaired_std,
 )
 
-
 if __name__ == "__main__":
-
     n_units_reference = 300
     n_units_candidate = 100
     n_resample = 1
@@ -44,12 +42,11 @@ if __name__ == "__main__":
     # Variability: standard deviation of the per-unit paired differences.
     std = unpaired_std(reference.y, candidate.y)
 
-
     # Question: what power does a study have?
     # Fixed: effect, margin, n_units, std, alpha. Solved for: power.
     result = unpaired_power(
         n_units_reference=n_units_reference,  # given: number of reference units available
-        n_units_candidate=n_units_candidate,  # given: number of candidate units available     
+        n_units_candidate=n_units_candidate,  # given: number of candidate units available
         effect=0.05,  # assumed: the true difference
         margin=0.15,  # chosen: largest difference still considered equivalent
         std=std,  # estimated from pilot data

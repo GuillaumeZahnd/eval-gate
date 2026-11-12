@@ -9,15 +9,13 @@ Power analysis links five interdependent quantities: fixing any four determines 
 """
 
 from eval_gate import (
-    simulate,
+    interpret_paired_power,
     paired_std,
     required_paired_n_units,
-    interpret_paired_power,
+    simulate,
 )
 
-
 if __name__ == "__main__":
-
     population_size = 200
     n_resample = 1
 
@@ -54,4 +52,3 @@ if __name__ == "__main__":
     )
 
     print(interpret_paired_power(result))
-

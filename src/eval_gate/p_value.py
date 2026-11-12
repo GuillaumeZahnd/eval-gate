@@ -1,13 +1,16 @@
 from dataclasses import dataclass
+
 import numpy as np
 from scipy.stats import norm
 
-from .core import AlternativeHypothesis, Direction, get_spec
-from ._units import paired_differences, unpaired_difference, mean_and_se
 from ._checks import check_in_open_interval_0_1, check_se_is_non_zero
+from ._units import mean_and_se, paired_differences, unpaired_difference
+from .core import AlternativeHypothesis, Direction, get_spec
 
 
-def _normal_p_value(direction: Direction, estimate: float, se: float, margin: float) -> float:
+def _normal_p_value(
+    direction: Direction, estimate: float, se: float, margin: float
+) -> float:
     """Return the normal-approximation p-value of ``estimate`` for a test direction (no validation)."""
 
     def greater(null: float) -> float:  # P(T >= t) under difference = null
@@ -47,6 +50,7 @@ class PairedPValueResult:
     alpha : float
         Significance level of the decision. It does not affect ``p_value``.
     """
+
     p_value: float
     alternative_hypothesis: AlternativeHypothesis
     margin: float
@@ -162,6 +166,7 @@ class UnpairedPValueResult:
     alpha : float
         Significance level of the decision. It does not affect ``p_value``.
     """
+
     p_value: float
     alternative_hypothesis: AlternativeHypothesis
     margin: float

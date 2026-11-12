@@ -8,16 +8,9 @@ Power analysis links five interdependent quantities: fixing any four determines 
 - power (1 - beta): the true-positive rate (probability of rejecting the null when the effect is real).
 """
 
-from eval_gate import (
-    simulate,
-    paired_std,
-    paired_power,
-    interpret_paired_power_at
-)
-
+from eval_gate import interpret_paired_power_at, paired_power, paired_std, simulate
 
 if __name__ == "__main__":
-
     population_size = 400
     n_resample = 20
 

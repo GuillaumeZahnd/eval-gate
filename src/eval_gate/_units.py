@@ -1,8 +1,9 @@
 import math
-import numpy as np
 from typing import NamedTuple
 
-from ._checks import check_min_units, check_all_finite
+import numpy as np
+
+from ._checks import check_all_finite, check_min_units
 
 
 class MeanSE(NamedTuple):
@@ -17,6 +18,7 @@ class MeanSE(NamedTuple):
     n_units : int
         Number of units.
     """
+
     mean: float
     se: float
     n_units: int
@@ -99,7 +101,9 @@ def paired_differences(reference: np.ndarray, candidate: np.ndarray) -> np.ndarr
     reference_units = unit_means(reference)
     candidate_units = unit_means(candidate)
     if reference_units.shape != candidate_units.shape:
-        raise ValueError(f"Number of units differs: {reference_units.shape[0]} vs {candidate_units.shape[0]}.")
+        raise ValueError(
+            f"Number of units differs: {reference_units.shape[0]} vs {candidate_units.shape[0]}."
+        )
     return candidate_units - reference_units
 
 
@@ -160,8 +164,12 @@ def unpaired_std(reference: np.ndarray, candidate: np.ndarray) -> float:
     check_min_units(n_units_reference, what="the standard deviation", minimum=2)
     check_min_units(n_units_candidate, what="the standard deviation", minimum=2)
 
-    sum_of_squares_reference = float(np.sum((reference_units - reference_units.mean()) ** 2))
-    sum_of_squares_candidate = float(np.sum((candidate_units - candidate_units.mean()) ** 2))
+    sum_of_squares_reference = float(
+        np.sum((reference_units - reference_units.mean()) ** 2)
+    )
+    sum_of_squares_candidate = float(
+        np.sum((candidate_units - candidate_units.mean()) ** 2)
+    )
     df = n_units_reference + n_units_candidate - 2
 
     return float(math.sqrt((sum_of_squares_reference + sum_of_squares_candidate) / df))
@@ -181,13 +189,16 @@ class UnpairedDifference(NamedTuple):
     n_units_candidate : int
         Number of units in the candidate group.
     """
+
     estimate: float
     se: float
     n_units_reference: int
     n_units_candidate: int
 
 
-def unpaired_difference(reference: np.ndarray, candidate: np.ndarray) -> UnpairedDifference:
+def unpaired_difference(
+    reference: np.ndarray, candidate: np.ndarray
+) -> UnpairedDifference:
     """Compute the difference of two independent group means (candidate - reference) and its standard error.
 
     Each group is summarized by :func:`mean_and_se` (replicates averaged within each unit). The groups may have a

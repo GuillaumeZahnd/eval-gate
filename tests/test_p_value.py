@@ -1,4 +1,5 @@
 import math
+
 import numpy as np
 import pytest
 from scipy.stats import norm
@@ -10,7 +11,6 @@ from eval_gate.p_value import (
     paired_p_value,
     unpaired_p_value,
 )
-
 
 Z_95 = float(norm.ppf(0.95))
 Z_975 = float(norm.ppf(0.975))
@@ -43,7 +43,9 @@ class TestNormalPValue:
         assert _normal_p_value("two_sided", Z_975, 1.0, 0.0) == pytest.approx(0.05)
 
     def test_two_sided_is_symmetric(self):
-        assert _normal_p_value("two_sided", 1.3, 1.0, 0.0) == pytest.approx(_normal_p_value("two_sided", -1.3, 1.0, 0.0))
+        assert _normal_p_value("two_sided", 1.3, 1.0, 0.0) == pytest.approx(
+            _normal_p_value("two_sided", -1.3, 1.0, 0.0)
+        )
 
     def test_two_sided_zero_estimate_gives_one(self):
         assert _normal_p_value("two_sided", 0.0, 1.0, 0.0) == 1.0
@@ -60,19 +62,28 @@ class TestNormalPValue:
 
     def test_equivalence_takes_the_larger_one_sided_p_value(self):
         # Estimate 0.5, margin 1: the p-values are sf(1.5) = 0.067 and cdf(-0.5) = 0.309.
-        assert _normal_p_value("equivalence", 0.5, 1.0, 1.0) == pytest.approx(norm.cdf(-0.5))
+        assert _normal_p_value("equivalence", 0.5, 1.0, 1.0) == pytest.approx(
+            norm.cdf(-0.5)
+        )
 
     def test_equivalence_is_symmetric(self):
-        assert _normal_p_value("equivalence", 0.5, 1.0, 1.0) == pytest.approx(_normal_p_value("equivalence", -0.5, 1.0, 1.0))
+        assert _normal_p_value("equivalence", 0.5, 1.0, 1.0) == pytest.approx(
+            _normal_p_value("equivalence", -0.5, 1.0, 1.0)
+        )
 
     def test_equivalence_at_zero_estimate(self):
         assert _normal_p_value("equivalence", 0.0, 1.0, Z_95) == pytest.approx(0.05)
 
     def test_only_the_ratio_estimate_over_se_matters(self):
-        assert _normal_p_value("two_sided", 2.0, 2.0, 0.0) == pytest.approx(_normal_p_value("two_sided", 1.0, 1.0, 0.0))
+        assert _normal_p_value("two_sided", 2.0, 2.0, 0.0) == pytest.approx(
+            _normal_p_value("two_sided", 1.0, 1.0, 0.0)
+        )
 
     def test_p_value_decreases_as_the_estimate_grows(self):
-        values = [_normal_p_value("greater", estimate, 1.0, 0.0) for estimate in (-1.0, 0.0, 1.0, 2.0)]
+        values = [
+            _normal_p_value("greater", estimate, 1.0, 0.0)
+            for estimate in (-1.0, 0.0, 1.0, 2.0)
+        ]
         assert values == sorted(values, reverse=True)
 
 
@@ -92,31 +103,47 @@ class TestPairedPValue:
         assert result.p_value == pytest.approx(norm.sf(PAIRED_ESTIMATE / PAIRED_SE))
 
     def test_non_inferiority_p_value(self):
-        result = paired_p_value(PAIRED_REFERENCE, PAIRED_CANDIDATE, "non_inferiority", margin=1.0)
-        assert result.p_value == pytest.approx(norm.sf((PAIRED_ESTIMATE + 1.0) / PAIRED_SE))
+        result = paired_p_value(
+            PAIRED_REFERENCE, PAIRED_CANDIDATE, "non_inferiority", margin=1.0
+        )
+        assert result.p_value == pytest.approx(
+            norm.sf((PAIRED_ESTIMATE + 1.0) / PAIRED_SE)
+        )
         assert result.margin == 1.0
 
     def test_equivalence_rejected_when_the_margin_is_wide(self):
-        result = paired_p_value(PAIRED_REFERENCE, PAIRED_CANDIDATE, "equivalence", margin=5.0)
-        assert result.p_value == pytest.approx(norm.cdf((PAIRED_ESTIMATE - 5.0) / PAIRED_SE))
+        result = paired_p_value(
+            PAIRED_REFERENCE, PAIRED_CANDIDATE, "equivalence", margin=5.0
+        )
+        assert result.p_value == pytest.approx(
+            norm.cdf((PAIRED_ESTIMATE - 5.0) / PAIRED_SE)
+        )
         assert result.reject
 
     def test_equivalence_not_rejected_when_the_margin_is_narrow(self):
-        result = paired_p_value(PAIRED_REFERENCE, PAIRED_CANDIDATE, "equivalence", margin=2.0)
-        assert result.p_value == pytest.approx(norm.cdf((PAIRED_ESTIMATE - 2.0) / PAIRED_SE))
+        result = paired_p_value(
+            PAIRED_REFERENCE, PAIRED_CANDIDATE, "equivalence", margin=2.0
+        )
+        assert result.p_value == pytest.approx(
+            norm.cdf((PAIRED_ESTIMATE - 2.0) / PAIRED_SE)
+        )
         assert not result.reject
 
     def test_difference_is_candidate_minus_reference(self):
         flipped = paired_p_value(PAIRED_CANDIDATE, PAIRED_REFERENCE)
         assert flipped.estimate == pytest.approx(-PAIRED_ESTIMATE)
-        assert flipped.p_value == pytest.approx(paired_p_value(PAIRED_REFERENCE, PAIRED_CANDIDATE).p_value)
+        assert flipped.p_value == pytest.approx(
+            paired_p_value(PAIRED_REFERENCE, PAIRED_CANDIDATE).p_value
+        )
 
     def test_superiority_p_value_is_large_when_the_candidate_is_lower(self):
         result = paired_p_value(PAIRED_CANDIDATE, PAIRED_REFERENCE, "superiority")
         assert result.p_value > 0.99
 
     def test_margin_is_ignored_without_a_margin_hypothesis(self):
-        with_margin = paired_p_value(PAIRED_REFERENCE, PAIRED_CANDIDATE, "superiority", margin=5.0)
+        with_margin = paired_p_value(
+            PAIRED_REFERENCE, PAIRED_CANDIDATE, "superiority", margin=5.0
+        )
         without = paired_p_value(PAIRED_REFERENCE, PAIRED_CANDIDATE, "superiority")
         assert with_margin.margin == 0.0
         assert with_margin.p_value == without.p_value
@@ -129,15 +156,21 @@ class TestPairedPValue:
         assert lenient.alpha == 0.2
 
     def test_result_echoes_the_inputs(self):
-        result = paired_p_value(PAIRED_REFERENCE, PAIRED_CANDIDATE, "non_inferiority", margin=1.0, alpha=0.1)
+        result = paired_p_value(
+            PAIRED_REFERENCE, PAIRED_CANDIDATE, "non_inferiority", margin=1.0, alpha=0.1
+        )
         assert result.alternative_hypothesis == "non_inferiority"
         assert result.alpha == 0.1
 
     def test_replicates_are_averaged_within_units(self):
         rng = np.random.default_rng(0)
         reference = rng.normal(size=(30, 4))
-        candidate = rng.normal(loc=0.3, size=(30, 2))  # the number of replicates may differ
-        assert paired_p_value(reference, candidate) == paired_p_value(reference.mean(axis=1), candidate.mean(axis=1))
+        candidate = rng.normal(
+            loc=0.3, size=(30, 2)
+        )  # the number of replicates may differ
+        assert paired_p_value(reference, candidate) == paired_p_value(
+            reference.mean(axis=1), candidate.mean(axis=1)
+        )
 
     def test_invariant_to_a_common_shift_and_rescaling(self):
         base = paired_p_value(PAIRED_REFERENCE, PAIRED_CANDIDATE)
@@ -171,7 +204,9 @@ class TestUnpairedPValue:
         ],
     )
     def test_p_value_for_each_alternative(self, alternative, margin, expected):
-        result = unpaired_p_value(UNPAIRED_REFERENCE, UNPAIRED_CANDIDATE, alternative, margin=margin)
+        result = unpaired_p_value(
+            UNPAIRED_REFERENCE, UNPAIRED_CANDIDATE, alternative, margin=margin
+        )
         assert result.p_value == pytest.approx(expected)
 
     def test_difference_is_candidate_minus_reference(self):
@@ -192,13 +227,17 @@ class TestUnpairedPValue:
     def test_replicates_are_averaged_within_units(self):
         rng = np.random.default_rng(0)
         reference = rng.normal(size=(40, 3))
-        candidate = rng.normal(loc=0.5, size=(25, 5))  # different units and different replicates
+        candidate = rng.normal(
+            loc=0.5, size=(25, 5)
+        )  # different units and different replicates
         assert unpaired_p_value(reference, candidate) == unpaired_p_value(
             reference.mean(axis=1), candidate.mean(axis=1)
         )
 
     def test_margin_is_ignored_without_a_margin_hypothesis(self):
-        result = unpaired_p_value(UNPAIRED_REFERENCE, UNPAIRED_CANDIDATE, "superiority", margin=5.0)
+        result = unpaired_p_value(
+            UNPAIRED_REFERENCE, UNPAIRED_CANDIDATE, "superiority", margin=5.0
+        )
         assert result.margin == 0.0
 
     def test_alpha_does_not_change_the_p_value(self):
@@ -242,25 +281,37 @@ class TestResultDecision:
 
 
 class TestTypeIErrorRate:
-    @pytest.mark.parametrize(("alternative", "margin", "true_difference"), NULL_BOUNDARIES)
-    def test_paired_rejection_rate_on_the_null_boundary_is_alpha(self, alternative, margin, true_difference):
+    @pytest.mark.parametrize(
+        ("alternative", "margin", "true_difference"), NULL_BOUNDARIES
+    )
+    def test_paired_rejection_rate_on_the_null_boundary_is_alpha(
+        self, alternative, margin, true_difference
+    ):
         rng = np.random.default_rng(0)
         rejected = 0
         for _ in range(N_EXPERIMENTS):
             reference = rng.normal(size=100)
             candidate = reference + rng.normal(true_difference, 1.0, size=100)
-            rejected += paired_p_value(reference, candidate, alternative, margin=margin).reject
+            rejected += paired_p_value(
+                reference, candidate, alternative, margin=margin
+            ).reject
         assert rejected / N_EXPERIMENTS == pytest.approx(0.05, abs=0.02)
 
-    @pytest.mark.parametrize(("alternative", "margin", "true_difference"), NULL_BOUNDARIES)
-    def test_unpaired_rejection_rate_on_the_null_boundary_is_alpha(self, alternative, margin, true_difference):
+    @pytest.mark.parametrize(
+        ("alternative", "margin", "true_difference"), NULL_BOUNDARIES
+    )
+    def test_unpaired_rejection_rate_on_the_null_boundary_is_alpha(
+        self, alternative, margin, true_difference
+    ):
         # Unequal sizes and unequal variances: the Welch standard error must keep the rate at alpha.
         rng = np.random.default_rng(0)
         rejected = 0
         for _ in range(N_EXPERIMENTS):
             reference = rng.normal(0.0, 1.0, size=150)
             candidate = rng.normal(true_difference, 2.0, size=100)
-            rejected += unpaired_p_value(reference, candidate, alternative, margin=margin).reject
+            rejected += unpaired_p_value(
+                reference, candidate, alternative, margin=margin
+            ).reject
         assert rejected / N_EXPERIMENTS == pytest.approx(0.05, abs=0.02)
 
 

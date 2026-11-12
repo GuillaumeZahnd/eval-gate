@@ -1,8 +1,6 @@
-from eval_gate import simulate, compute_paired_effect_size, interpret_paired_effect_size
-
+from eval_gate import compute_paired_effect_size, interpret_paired_effect_size, simulate
 
 if __name__ == "__main__":
-
     population_size = 25
     n_resample = 1
 
@@ -31,4 +29,3 @@ if __name__ == "__main__":
     )
 
     print(interpret_paired_effect_size(result))
-

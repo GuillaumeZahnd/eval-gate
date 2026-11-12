@@ -1,8 +1,6 @@
-from eval_gate import simulate, paired_p_value, interpret_paired_p_value
-
+from eval_gate import interpret_paired_p_value, paired_p_value, simulate
 
 if __name__ == "__main__":
-
     population_size = 200
     n_resample = 1
 

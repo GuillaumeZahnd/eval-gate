@@ -63,8 +63,12 @@ class TestKnownValues:
         assert abs(result.hedges_g) < abs(result.cohens_d)
         assert result.hedges_g == pytest.approx(result.cohens_d, rel=1e-3)
 
-    @pytest.mark.parametrize("n_units, factor", [(5, 0.80), (10, 0.91), (20, 0.96), (100, 0.99)])
-    def test_correction_factor_matches_the_values_quoted_in_the_docstring(self, n_units, factor):
+    @pytest.mark.parametrize(
+        "n_units, factor", [(5, 0.80), (10, 0.91), (20, 0.96), (100, 0.99)]
+    )
+    def test_correction_factor_matches_the_values_quoted_in_the_docstring(
+        self, n_units, factor
+    ):
         candidate = np.arange(1.0, n_units + 1.0)
         result = compute_paired_effect_size(np.zeros(n_units), candidate)
         assert result.hedges_g / result.cohens_d == pytest.approx(factor, abs=0.005)
@@ -84,7 +88,9 @@ class TestProperties:
         a, b = rng.normal(size=25), rng.normal(loc=0.4, size=25)
         diffs = b - a
         t = diffs.mean() / (diffs.std(ddof=1) / math.sqrt(25))
-        assert compute_paired_effect_size(a, b).cohens_d * math.sqrt(25) == pytest.approx(t)
+        assert compute_paired_effect_size(a, b).cohens_d * math.sqrt(
+            25
+        ) == pytest.approx(t)
 
     def test_sign_follows_candidate_minus_reference(self):
         forward = compute_paired_effect_size(A, B)
@@ -118,7 +124,9 @@ class TestProperties:
     def test_number_of_replicates_may_differ_between_conditions(self):
         b3 = np.column_stack([B - 1.0, B, B + 1.0])
         result = compute_paired_effect_size(A, b3)
-        assert result.cohens_d == pytest.approx(compute_paired_effect_size(A, B).cohens_d)
+        assert result.cohens_d == pytest.approx(
+            compute_paired_effect_size(A, B).cohens_d
+        )
 
     def test_interval_contains_hedges_g(self):
         result = compute_paired_effect_size(A, B)
@@ -133,8 +141,12 @@ class TestProperties:
     def test_interval_narrows_with_more_units(self):
         rng = np.random.default_rng(3)
         small_a, large_a = rng.normal(size=20), rng.normal(size=500)
-        small = compute_paired_effect_size(small_a, small_a + rng.normal(loc=0.5, size=20))
-        large = compute_paired_effect_size(large_a, large_a + rng.normal(loc=0.5, size=500))
+        small = compute_paired_effect_size(
+            small_a, small_a + rng.normal(loc=0.5, size=20)
+        )
+        large = compute_paired_effect_size(
+            large_a, large_a + rng.normal(loc=0.5, size=500)
+        )
         assert (large.ci_upper - large.ci_lower) < (small.ci_upper - small.ci_lower)
 
 
@@ -198,7 +210,9 @@ class TestInputValidation:
 
     @pytest.mark.parametrize("bad", [math.nan, math.inf, -math.inf])
     @pytest.mark.parametrize("condition", ["reference", "candidate"])
-    def test_non_finite_data_raises_without_numpy_warnings(self, bad, condition, recwarn):
+    def test_non_finite_data_raises_without_numpy_warnings(
+        self, bad, condition, recwarn
+    ):
         reference, candidate = A.copy(), B.copy()
         (reference if condition == "reference" else candidate)[0] = bad
         with pytest.raises(ValueError, match="must contain only finite values"):

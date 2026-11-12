@@ -1,17 +1,17 @@
 import math
 from dataclasses import dataclass
 from typing import Literal, NamedTuple
+
 import numpy as np
 
-from ._units import paired_differences, unit_means
-from .confidence import confidence_bounds
 from ._checks import (
     check_all_finite,
     check_finite_strictly_positive,
+    check_in_open_interval_0_1,
     check_min_units,
-    check_in_open_interval_0_1
 )
-
+from ._units import paired_differences, unit_means
+from .confidence import confidence_bounds
 
 EffectMagnitude = Literal["negligible", "small", "medium", "large"]
 
@@ -118,7 +118,9 @@ class UnpairedEffectResult(EffectResult):
 
 def _hedges_correction(df: int) -> float:
     """Exact small-sample bias correction factor ``J(df)`` for a standardized mean difference."""
-    return math.exp(math.lgamma(df / 2.0) - math.lgamma((df - 1) / 2.0)) / math.sqrt(df / 2.0)
+    return math.exp(math.lgamma(df / 2.0) - math.lgamma((df - 1) / 2.0)) / math.sqrt(
+        df / 2.0
+    )
 
 
 class _StandardizedEffect(NamedTuple):
@@ -169,7 +171,9 @@ def _standardized_effect(
     if all(np.ptp(s) == 0 for s in samples):
         standardizer = 0.0
     else:
-        standardizer = math.sqrt(sum(float(np.sum((s - s.mean()) ** 2)) for s in samples) / df)
+        standardizer = math.sqrt(
+            sum(float(np.sum((s - s.mean()) ** 2)) for s in samples) / df
+        )
     check_finite_strictly_positive(standardizer, std_name)
 
     # Cohen's d: the mean difference expressed in standard deviations, so effects can be compared across metrics.
@@ -181,7 +185,9 @@ def _standardized_effect(
 
     correction = _hedges_correction(df)
     hedges_g = cohens_d * correction
-    ci_lower, ci_upper = confidence_bounds("two_sided", hedges_g, correction * se_d, alpha=alpha)
+    ci_lower, ci_upper = confidence_bounds(
+        "two_sided", hedges_g, correction * se_d, alpha=alpha
+    )
 
     return _StandardizedEffect(cohens_d, hedges_g, ci_lower, ci_upper, standardizer)
 
@@ -251,7 +257,9 @@ def compute_paired_effect_size(
     check_min_units(n_units, "the effect size", minimum=_MIN_UNITS)
 
     mean_difference = float(differences.mean())
-    effect = _standardized_effect(mean_difference, (differences,), alpha, "std of paired differences")
+    effect = _standardized_effect(
+        mean_difference, (differences,), alpha, "std of paired differences"
+    )
 
     return PairedEffectResult(
         cohens_d=effect.cohens_d,
@@ -320,11 +328,17 @@ def compute_unpaired_effect_size(
 
     n_units_reference = reference_units.shape[0]
     n_units_candidate = candidate_units.shape[0]
-    check_min_units(n_units_reference, "the reference group for the effect size", minimum=2)
-    check_min_units(n_units_candidate, "the candidate group for the effect size", minimum=2)
+    check_min_units(
+        n_units_reference, "the reference group for the effect size", minimum=2
+    )
+    check_min_units(
+        n_units_candidate, "the candidate group for the effect size", minimum=2
+    )
 
     mean_difference = float(candidate_units.mean() - reference_units.mean())
-    effect = _standardized_effect(mean_difference, (reference_units, candidate_units), alpha, "pooled std")
+    effect = _standardized_effect(
+        mean_difference, (reference_units, candidate_units), alpha, "pooled std"
+    )
 
     return UnpairedEffectResult(
         cohens_d=effect.cohens_d,

@@ -9,15 +9,13 @@ Power analysis links five interdependent quantities: fixing any four determines 
 """
 
 from eval_gate import (
+    interpret_unpaired_power,
+    required_unpaired_n_units,
     simulate,
     unpaired_std,
-    required_unpaired_n_units,
-    interpret_unpaired_power,
 )
 
-
 if __name__ == "__main__":
-
     n_units_reference = 3_000
     n_units_candidate = 6_000
     n_resample = 1

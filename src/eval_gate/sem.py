@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import Literal, get_args
+
 import numpy as np
 
-from .confidence import confidence_bounds
-from ._units import mean_and_se
 from ._checks import check_in_open_interval_0_1
-
+from ._units import mean_and_se
+from .confidence import confidence_bounds
 
 # Alternatives that make sense for a single mean: a two-sided interval, or a one-sided lower bound.
 # "non_inferiority" and "equivalence" are excluded because they compare against a reference and need a margin.
@@ -34,6 +34,7 @@ class SEMResult:
     n_units : int
         Number of units.
     """
+
     mean: float
     sem: float
     ci_lower: float

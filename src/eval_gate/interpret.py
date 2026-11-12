@@ -411,6 +411,116 @@ def interpret_unpaired_power(
     )
 
 
+def _power_status(alternative_hypothesis: AlternativeHypothesis, effect: float, margin: float, power: float) -> str:
+    """Classify a power result as ``"not_a_power"``, ``"adequate"``, ``"underpowered"`` or ``"badly_underpowered"``.
+
+    ``"not_a_power"`` means the assumed ``effect`` lies in the null region of the hypothesis, where the
+    rejection probability cannot exceed ``alpha``. Otherwise the power is adequate from 80%, underpowered
+    from 50% to 80%, and badly underpowered below 50%.
+    """
+    match alternative_hypothesis:
+        case "two_sided":
+            in_null = effect == 0
+        case "superiority" | "non_inferiority":
+            in_null = effect <= -margin
+        case "equivalence":
+            in_null = abs(effect) >= margin
+
+    if in_null:
+        return "not_a_power"
+    if power >= 0.8:
+        return "adequate"
+    if power >= 0.5:
+        return "underpowered"
+    return "badly_underpowered"
+
+
+def _interpret_power_at(
+    result: PairedPowerAtResult | UnpairedPowerAtResult,
+    *,
+    metric: str,
+    unit: str,
+    fmt: str,
+    sizes: str,
+    std_label: str,
+    smallest: int,
+    smaller_group: bool,
+) -> str:
+    """Return a plain-language reading of a ``power_at`` result, shared by the paired and unpaired versions.
+
+    Parameters
+    ----------
+    result : PairedPowerAtResult or UnpairedPowerAtResult
+        The power result to read.
+    metric : str
+        What is being compared, e.g. ``"mean accuracy"``.
+    unit : str
+        What one unit is, e.g. ``"questions"``, ``"patients"`` or ``"matches"``.
+    fmt : str
+        Format spec for the effect, margin and standard deviation.
+    sizes : str
+        The sample size(s) the power refers to, e.g. ``"200 units"`` or ``"200 reference and 150 candidate units"``.
+    std_label : str
+        Name of the assumed variability, e.g. ``"standard deviation of the per-unit differences"``.
+    smallest : int
+        Size of the smallest sample, compared with ``SMALL_N``.
+    smaller_group : bool
+        Whether ``smallest`` is the smaller of two independent groups; it only changes the caveat wording.
+
+    Returns
+    -------
+    str
+        The ``[RESULT]`` and ``[VERDICT]`` lines, followed by one ``[CAVEAT]`` line per caveat.
+    """
+
+    def num(x: float) -> str:
+        return format(x, fmt)
+
+    power = result.power
+    goal = _power_goal(result.alternative_hypothesis, metric, num(result.margin))
+
+    # Result: the numbers and the inputs it was computed from
+    numbers = (
+        f"Power {power:.1%} with {sizes} at significance level {result.alpha:g}. "
+        f"Assumed true difference (candidate - reference): {num(result.effect)}; "
+        f"assumed {std_label}: {num(result.std)} (standardized effect {result.effect / result.std:.2f})."
+    )
+
+    # Verdict: what the numbers achieve
+    match _power_status(result.alternative_hypothesis, result.effect, result.margin, power):
+        case "adequate":
+            verdict = (
+                f"Adequate. Under these assumptions, the test would {goal} {power:.1%} of the time "
+                "(at least the usual 80%)."
+            )
+        case "underpowered":
+            verdict = (
+                f"Underpowered. Under these assumptions, the test would fail to {goal} {1 - power:.1%} of the time "
+                "(the usual target is 80% power)."
+            )
+        case "badly_underpowered":
+            verdict = (
+                f"Badly underpowered. Under these assumptions, the test would fail to {goal} {1 - power:.1%} "
+                "of the time, more often than it succeeds."
+            )
+        case "not_a_power":
+            verdict = (
+                "Not a power. The assumed difference lies in the null region of the hypothesis, "
+                f"so the test rejects at most {result.alpha:g} of the time."
+            )
+
+    # Caveats: small-sample (only when triggered), planning (always)
+    caveats = _caveat_small_n(
+        smallest,
+        unit,
+        "the normal approximation can make the power somewhat overestimated",
+        smaller_group=smaller_group,
+    )
+    caveats.append("The power is only as reliable as the assumed difference and standard deviation.")
+
+    return _report(numbers, verdict, caveats)
+
+
 def interpret_paired_power_at(
     result: PairedPowerAtResult,
     *,
@@ -419,22 +529,6 @@ def interpret_paired_power_at(
     fmt: str = ".3f",
 ) -> str:
     """Return a plain-language reading of a ``paired_power`` result.
-
-    The text has one line per element:
-
-    1. The power reached with the given number of units, and the goal it refers to.
-    2. The conclusion, one of four outcomes decided by the power and by where the assumed
-       difference lies:
-
-       - adequate (power of at least 80%);
-       - underpowered (50% to 80%);
-       - badly underpowered (below 50%);
-       - not a power (the assumed difference lies in the null region of the hypothesis).
-
-    3. The assumptions behind it: the true difference and the standard deviation of the
-       per-unit differences, with the resulting standardized effect.
-    4. A caveat when the sample is small (fewer than ``SMALL_N`` units).
-    5. "About the test", a sentence describing the method and its limits.
 
     Parameters
     ----------
@@ -453,90 +547,57 @@ def interpret_paired_power_at(
     str
         The ``[RESULT]`` and ``[VERDICT]`` lines, followed by one ``[CAVEAT]`` line per caveat.
     """
-
-    def num(x: float) -> str:
-        return format(x, fmt)
-
     n = result.n_units
-    power = result.power
-    margin = num(result.margin)
-
-    # Line 1: the power and its goal
-    match result.alternative_hypothesis:
-        case "two_sided":
-            goal = f"detect a difference in {metric}"
-        case "superiority":
-            goal = f"show that the candidate's {metric} is higher"
-        case "non_inferiority":
-            goal = f"show that the candidate's {metric} is not lower than the reference's by {margin} or more"
-        case "equivalence":
-            goal = f"show that the difference in {metric} is within ±{margin}"
-
-    head = f"With {n} {unit}, the test has {power:.1%} power to {goal}, at significance level {result.alpha:g}."
-
-    # Classification: is the assumed difference in the null region, and how high is the power
-    match result.alternative_hypothesis:
-        case "two_sided":
-            in_null = result.effect == 0
-        case "superiority" | "non_inferiority":
-            in_null = result.effect <= -result.margin
-        case "equivalence":
-            in_null = abs(result.effect) >= result.margin
-
-    if in_null:
-        case = "not_a_power"
-    elif power >= 0.8:
-        case = "adequate"
-    elif power >= 0.5:
-        case = "underpowered"
-    else:
-        case = "badly_underpowered"
-
-    # [VERDICT]
-    match case:
-        case "adequate":
-            verdict = f"adequate. The assumed difference would be detected {power:.1%} of the time (at least the usual 80%)."
-        case "underpowered":
-            verdict = (
-                f"underpowered. The assumed difference would be missed {1 - power:.1%} of the time "
-                "(the usual target is 80% power)."
-            )
-        case "badly_underpowered":
-            verdict = (
-                f"badly underpowered. The assumed difference is more likely to be missed than detected "
-                f"(missed {1 - power:.1%} of the time)."
-            )
-        case "not_a_power":
-            verdict = (
-                "not a power. The assumed difference lies in the null region of the hypothesis, "
-                f"so the test rejects at most {result.alpha:g} of the time."
-            )
-    verdict = f"[VERDICT] {verdict}"
-
-    # Line 3: assumptions
-    assumptions = (
-        f"Assumptions: a true difference (candidate - reference) of {num(result.effect)} "
-        f"and a standard deviation of the per-unit differences of {num(result.std)} "
-        f"(standardized effect {result.effect / result.std:.2f})."
+    return _interpret_power_at(
+        result,
+        metric=metric,
+        unit=unit,
+        fmt=fmt,
+        sizes=f"{n} {unit}",
+        std_label="standard deviation of the per-unit differences",
+        smallest=n,
+        smaller_group=False,
     )
 
-    # Line 4: caveat when the number is small
-    caveats = _caveat_small_n(n, unit, "the normal approximation can make the power somewhat overestimated")
 
+def interpret_unpaired_power_at(
+    result: UnpairedPowerAtResult,
+    *,
+    metric: str = "mean outcome",
+    unit: str = "units",
+    fmt: str = ".3f",
+) -> str:
+    """Return a plain-language reading of an ``unpaired_power`` result.
 
-    # Line 5: About the test
-    about = (
-        "About the test: power is the probability that the test rejects the null hypothesis if the assumed "
-        "difference holds. It uses a normal approximation with the standard deviation taken as known; "
-        "if the true standard deviation is larger than assumed, or is estimated from a small sample, "
-        "the actual power can be lower."
+    Parameters
+    ----------
+    result : UnpairedPowerAtResult
+        The result object returned by ``unpaired_power``.
+    metric : str, default="mean outcome"
+        What is being compared, e.g. ``"mean accuracy"``.
+    unit : str, default="units"
+        What one unit is, e.g. ``"questions"``, ``"patients"`` or ``"matches"``.
+    fmt : str, default=".3f"
+        Format spec for the effect, margin and standard deviation; ``".1%"`` prints
+        proportions as percentages. The standardized effect always uses two decimals.
+
+    Returns
+    -------
+    str
+        The ``[RESULT]`` and ``[VERDICT]`` lines, followed by one ``[CAVEAT]`` line per caveat.
+    """
+    n_reference = result.n_units_reference
+    n_candidate = result.n_units_candidate
+    return _interpret_power_at(
+        result,
+        metric=metric,
+        unit=unit,
+        fmt=fmt,
+        sizes=f"{n_reference} reference and {n_candidate} candidate {unit}",
+        std_label="pooled standard deviation",
+        smallest=min(n_reference, n_candidate),
+        smaller_group=True,
     )
-
-    return "\n".join([head, verdict, assumptions, *small_n, about])
-
-
-def interpret_unpaired_power_at():
-    return None ## TODO
 
 
 def _interpret_effect_size(

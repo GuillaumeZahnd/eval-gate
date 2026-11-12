@@ -53,7 +53,7 @@ if __name__ == "__main__":
         power=0.8,  # chosen: target power
         alpha=0.05,  # chosen: significance level
         margin=0.5,  # TODO
-        allocation_ratio=1.0,  # TODO
+        allocation_ratio=1.0,  # ratio of candidate units to reference units
     )
 
     print(interpret_unpaired_power(result))

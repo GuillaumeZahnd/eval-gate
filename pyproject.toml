@@ -16,7 +16,8 @@ dependencies = [
 dev = [
     "pytest>=9.1.1",
     "seaborn>=0.13",
-    "matplotlib>=3.11"   
+    "matplotlib>=3.11",
+    "ruff 0.15",
 ]
 docs = [
     "mkdocs>=1.6.0",

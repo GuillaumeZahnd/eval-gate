@@ -4,6 +4,13 @@ repo_url: https://github.com/GuillaumeZahnd/eval-gate
 
 theme:
   name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+    - scheme: slate
+      primary: indigo
+      accent: indigo
 
 plugins:
   - search

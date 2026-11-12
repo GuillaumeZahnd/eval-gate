@@ -24,7 +24,7 @@ print(interpret_sem(result))
 ### Comparing a candidate to a reference (paired)
 
 ```python
-from eval_gate import paired_p_value, interpret_p_value
+from eval_gate import paired_p_value, interpret_paired__value
 
 # reference, candidate: arrays of shape (200,), one paired measurement per unit
 result = paired_p_value(
@@ -35,7 +35,7 @@ result = paired_p_value(
     alpha=0.05,  # significance level of the decision
 )
 
-print(interpret_p_value(result))
+print(interpret_paired_p_value(result))
 ```
 
 > p = 0.002 (significance level 0.05): the null hypothesis is rejected. This p-value is the probability, if the candidate were worse than the reference by 0.100 or more, of a result at least as favourable to the alternative as the one observed. A drop of 0.100 or more is ruled out. The candidate may be equal or better; this test does not distinguish between the two. The observed difference (candidate - reference) is 0.044 (SE 0.049, 200 units). A small p-value shows that a difference is detectable, not that it is large.
@@ -110,3 +110,52 @@ print(interpret_power_at(achieved))
 >
 > Assumptions: a true difference (candidate - reference) of 0.050 and a standard deviation of the per-unit differences of 0.685 (standardized effect 0.07).
 
+## 📖 Documentation
+
+This project uses [MkDocs](https://www.mkdocs.org/) with `mkdocstrings` for API reference generation. Documentation is automatically built and published to GitHub Pages via GitHub Actions whenever changes are merged into the `main` branch.
+
+### Local development
+
+To build and preview the documentation locally:
+
+1. **Clone the repository and sync dependencies** (including the docs group):
+
+```sh
+git clone [https://github.com/GuillaumeZahnd/eval-gate](https://github.com/GuillaumeZahnd/eval-gate)
+cd eval-gate
+uv sync --group docs
+```
+
+2. Run the live-reload development server:
+
+```sh
+uv run mkdocs serve
+```
+
+3. Open `http://127.0.0.1:8000` in your browser.
+
+4. Verify the build (runs in strict mode to catch broken links or invalid docstrings):
+
+```sh
+uv run mkdocs build --strict
+```
+
+## Writing docstrings
+
+When adding or updating Python functions, please use NumPy-style docstrings so they render properly in the API reference:
+
+```python
+def example_function(parameter: type) -> return_type:
+    """Short summary of the function.
+
+    Parameters
+    ----------
+    parameter : type
+        Description of the parameter.
+
+    Returns
+    -------
+    return_type
+        Description of the return value.
+    """
+```

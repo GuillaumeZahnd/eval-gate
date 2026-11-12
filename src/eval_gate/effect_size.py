@@ -251,7 +251,7 @@ def compute_paired_effect_size(
     check_min_units(n_units, "the effect size", minimum=_MIN_UNITS)
 
     mean_difference = float(differences.mean())
-    effect = _standardized_effect(mean_difference, (differences,), alpha)
+    effect = _standardized_effect(mean_difference, (differences,), alpha, "std of paired differences")
 
     return PairedEffectResult(
         cohens_d=effect.cohens_d,

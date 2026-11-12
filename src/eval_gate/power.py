@@ -185,6 +185,12 @@ def paired_power(
     ------
     ValueError
         If ``n_units`` is less than 2.
+
+    Notes
+    -----
+    Power is the probability that the test rejects the null hypothesis if the assumed difference holds. The
+    calculation uses a normal approximation with the standard deviation taken as known; if the true
+    standard deviation is larger than assumed, or is estimated from a small sample, the actual power can be lower.
     """
     if n_units < 2:
         raise ValueError(f"At least 2 units are required, got {n_units}.")
@@ -244,6 +250,12 @@ def unpaired_power(
     ------
     ValueError
         If either group has fewer than 2 units, or if group sizes are unbalanced during power evaluation.
+
+    Notes
+    -----
+    Power is the probability that the test rejects the null hypothesis if the assumed difference holds. The
+    calculation uses a normal approximation with the standard deviation taken as known; if the true
+    standard deviation is larger than assumed, or is estimated from a small sample, the actual power can be lower.
     """
     if n_units_reference < 2 or n_units_candidate < 2:
         raise ValueError(
@@ -298,6 +310,12 @@ def required_paired_n_units(
     -------
     PairedPowerResult
         The required number of paired units, the power it achieves, and design conditions.
+
+    Notes
+    -----
+    Power is the probability that the test rejects the null hypothesis if the assumed difference holds. The
+    calculation uses a normal approximation with the standard deviation taken as known; if the true
+    standard deviation is larger than assumed, or is estimated from a small sample, the actual power can be lower.
     """
     hi = _find_required_sample_size(
         effect, std, alternative_hypothesis, power, margin, alpha, _compute_paired_power
@@ -343,6 +361,12 @@ def required_unpaired_n_units(
     -------
     UnpairedPowerResult
         The required sample size per group, the power achieved, and design conditions.
+
+    Notes
+    -----
+    Power is the probability that the test rejects the null hypothesis if the assumed difference holds. The
+    calculation uses a normal approximation with the standard deviation taken as known; if the true
+    standard deviation is larger than assumed, or is estimated from a small sample, the actual power can be lower.
     """
     hi = _find_required_sample_size(
         effect, std, alternative_hypothesis, power, margin, alpha, _compute_unpaired_power

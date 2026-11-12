@@ -6,25 +6,32 @@
 
 ### Estimating a mean with a confidence interval
 
+Estimates the mean of a set of measurements and how precisely it is known, as a standard error and a confidence interval.
+
 ```python
 from eval_gate import compute_sem, interpret_sem
 
-# outcomes: array of shape (500,)
+# outcomes: array of shape (500,), one measurement per unit
 result = compute_sem(
-  outcomes,
-  confidence=0.95,  # confidence level of the interval
-  alternative_hypothesis="two_sided"  # sidedness of the interval
+    outcomes,
+    confidence=0.95,  # confidence level of the interval
+    alternative_hypothesis="two_sided",  # sidedness of the interval
 )
 
 print(interpret_sem(result))
 ```
 
-> The mean outcome is estimated at -0.031 (SEM 0.048, 500 units). With 95% confidence, the true mean outcome lies between -0.125 and 0.063.
+> [RESULT] The mean outcome is estimated at -0.096 (SEM 0.062, 500 units).
+>
+> [VERDICT] With 95% confidence, the true mean outcome lies between -0.218 and 0.025.
+
 
 ### Comparing a candidate to a reference (paired)
 
+Tests whether a candidate differs from, exceeds, is not worse than, or is equivalent to a reference, when every unit is measured under both, by testing the mean of the per-unit differences.
+
 ```python
-from eval_gate import paired_p_value, interpret_p_value
+from eval_gate import paired_p_value, interpret_paired_p_value
 
 # reference, candidate: arrays of shape (200,), one paired measurement per unit
 result = paired_p_value(
@@ -35,78 +42,256 @@ result = paired_p_value(
     alpha=0.05,  # significance level of the decision
 )
 
-print(interpret_p_value(result))
+print(interpret_paired_p_value(result))
 ```
 
-> p = 0.002 (significance level 0.05): the null hypothesis is rejected. This p-value is the probability, if the candidate were worse than the reference by 0.100 or more, of a result at least as favourable to the alternative as the one observed. A drop of 0.100 or more is ruled out. The candidate may be equal or better; this test does not distinguish between the two. The observed difference (candidate - reference) is 0.044 (SE 0.049, 200 units). A small p-value shows that a difference is detectable, not that it is large.
+> [RESULT] p = 0.002 (significance level 0.05). Observed difference (candidate - reference): 0.044 (SE 0.049, 200 units).
+>
+> [VERDICT] Non-inferiority established. A drop of 0.100 or more is ruled out; the candidate may be equal or higher.
 
-### Estimating the paired effect size
+
+### Comparing a candidate to a reference (unpaired)
+
+Tests the same hypotheses when the candidate and the reference are measured on different, independent units, using Welch's test, which does not assume equal variances or equal group sizes.
 
 ```python
-from eval_gate compute_paired_effect_size, interpret_effect_size
+from eval_gate import unpaired_p_value, interpret_unpaired_p_value
 
-# reference, candidate: arrays of shape (1000,), one paired measurement per unit
-result = compute_paired_effect_size(
+# reference: array of shape (200,), one measurement per unit
+# candidate: array of shape (50,), one measurement per unit
+result = unpaired_p_value(
     reference,
     candidate,
+    alternative_hypothesis="superiority",  # alternative hypothesis being tested
     alpha=0.05,  # significance level of the decision
 )
 
-print(interpret_effect_size(result))
+print(interpret_unpaired_p_value(result))
 ```
 
-> The candidate's mean outcome is 0.184 higher than the reference's on average (1000 units), a negligible standardized effect (Hedges' g = 0.17, 95% CI [0.11, 0.23]).
+> [RESULT] p = 0.669 (significance level 0.05). Observed difference (candidate - reference): -0.110 (SE 0.253, 200 reference and 50 candidate units).
 >
-> Conclusion: difference established — the candidate is higher, but its size is unclear and may be negligible.
->
-> Zero lies outside the 95% interval, so 'no difference' is ruled out. Plausible effects range from a negligible to a small increase.
->
-> About the test: Hedges' g is the mean paired difference (0.184) divided by the standard deviation of the per-unit differences (1.081), then corrected for small-sample bias; its interval uses a normal approximation, and the size labels are Cohen's rules of thumb (0.2, 0.5, 0.8).
+> [VERDICT] Superiority not established. The candidate may still be higher, but the data are not strong enough to say so.
 
-### Estimating the required number of units
+
+### Estimating a paired effect size
+
+Measures how large the mean difference between a candidate and a reference is, in standard deviations of the per-unit differences (Hedges' g), with a confidence interval, when every unit is measured under both.
 
 ```python
-from eval_gate required_nb_units, interpret_power
+from eval_gate import compute_paired_effect_size, interpret_paired_effect_size
+
+# reference, candidate: arrays of shape (25,), one paired measurement per unit
+result = compute_paired_effect_size(
+    reference,
+    candidate,
+    alpha=0.05,  # significance level of the confidence interval (95% here)
+)
+
+print(interpret_paired_effect_size(result))
+```
+
+> [RESULT] Mean difference (candidate - reference): -0.011 (25 units). Hedges' g = -0.02, 95% CI [-0.40, 0.36].
+>
+> [VERDICT] Inconclusive. Plausible effects range from a small decrease to a small increase.
+>
+> [CAVEAT] Only 25 units (less than 30): the normal approximation can make the interval somewhat too narrow.
+
+
+### Estimating an unpaired effect size
+
+Measures how large the difference between the means of two independent groups is, in pooled standard deviations (Hedges' g), with a confidence interval.
+
+```python
+from eval_gate import compute_unpaired_effect_size, interpret_unpaired_effect_size
+
+# reference: array of shape (2_000,), one measurement per unit
+# candidate: array of shape (700, 3), three measurements per unit
+result = compute_unpaired_effect_size(
+    reference,
+    candidate,
+    alpha=0.005,  # significance level of the confidence interval (99.5% here)
+)
+
+print(interpret_unpaired_effect_size(result))
+```
+
+> [RESULT] Mean difference (candidate - reference): 2.875 (2000 reference and 700 candidate units). Hedges' g = 0.70, 99.5% CI [0.58, 0.83].
+>
+> [VERDICT] Difference established. The candidate's mean outcome is higher than the reference's; plausible effects range from a medium to a large increase.
+
+
+### Estimating the required number of units (paired)
+
+Computes how many paired units a study needs for the test to detect a given true difference with a chosen probability (the power).
+
+```python
+from eval_gate import paired_std, required_paired_n_units, interpret_paired_power
+
+# reference, candidate: arrays of shape (200,), one paired measurement per unit
+std = paired_std(reference, candidate)
 
 # Question: how many units are needed to detect an effect?
-# Fixed: effect, std, alpha, power. Solved for: nb_units.
-design = required_nb_units(
-    effect=0.15,                           # assumed: the smallest true difference worth detecting
-    std=std,                               # estimated from pilot data
+# Fixed: effect, std, alpha, power. Solved for: n_units.
+result = required_paired_n_units(
+    effect=0.15,  # assumed: the smallest true difference worth detecting
+    std=std,  # estimated from pilot data
     alternative_hypothesis="superiority",  # chosen: alternative hypothesis
-    power=0.8,                             # chosen: target power
-    alpha=0.05,                            # chosen: significance level
+    power=0.8,  # chosen: target power
+    alpha=0.05,  # chosen: significance level
 )
 
-print(interpret_power(design))
+print(interpret_paired_power(result))
 ```
 
-> 134 units are needed to show that the candidate's mean outcome is higher, with at least 80% power at significance level 0.05.
+> [RESULT] 134 units needed for at least 80% power at significance level 0.05. Assumed true difference (candidate - reference): 0.150; assumed standard deviation of the per-unit differences: 0.696 (standardized effect 0.22).
 >
-> Assumptions: a true difference (candidate - reference) of 0.150 and a standard deviation of the per-unit differences of 0.696 (standardized effect 0.22).
+> [VERDICT] With 134 units, the test would show that the candidate's mean outcome is higher at least 80% of the time under these assumptions.
+>
+> [CAVEAT] The number is only as reliable as the assumed difference and standard deviation; a larger standard deviation needs more units.
 
-### Estimating the power level
+
+### Estimating the required number of units (unpaired)
+
+Computes how many units each of two independent groups needs for the test to detect a given true difference with a chosen probability (the power).
 
 ```python
-from eval_gate paired_power, interpret_power_at
+from eval_gate import unpaired_std, required_unpaired_n_units, interpret_unpaired_power
 
-# Question: what power does a study have?
-# Fixed: effect, margin, nb_units, std, alpha. Solved for: power.
-achieved = paired_power(
-    nb_units=population_size,  # given: number of units available
-    effect=0.05,                           # assumed: the true difference
-    margin=0.15,                           # chosen: largest difference still considered equivalent
-    std=std,                               # estimated from pilot data
+# reference: array of shape (3_000,), one measurement per unit
+# candidate: array of shape (6_000,), one measurement per unit
+std = unpaired_std(reference, candidate)
+
+# Question: how many units are needed to detect an effect?
+# Fixed: effect, margin, std, alpha, power, allocation_ratio. Solved for: n_units_reference and n_units_candidate.
+result = required_unpaired_n_units(
+    effect=0.1,  # assumed: the smallest true difference worth detecting
+    std=std,  # estimated from pilot data
     alternative_hypothesis="equivalence",  # chosen: alternative hypothesis
-    alpha=0.05,                            # chosen: significance level
+    power=0.8,  # chosen: target power
+    alpha=0.05,  # chosen: significance level
+    margin=0.5,  # chosen: largest difference still considered equivalent
+    allocation_ratio=1.0,  # chosen: ratio of candidate units to reference units
 )
 
-print(interpret_power_at(achieved))
+print(interpret_unpaired_power(result))
 ```
 
-> With 200 units, the test has 65.6% power to show that the difference in mean outcome is within ±0.150, at significance level 0.05.
+> [RESULT] 2212 reference and 2212 candidate units needed for at least 80% power at significance level 0.05. Assumed true difference (candidate - reference): 0.100; assumed pooled standard deviation: 5.234 (standardized effect 0.02).
 >
-> Conclusion: underpowered. The assumed difference would be missed 34.4% of the time (the usual target is 80% power).
+> [VERDICT] With 2212 reference and 2212 candidate units, the test would show that the difference in mean outcome is within ±0.500 at least 80% of the time under these assumptions.
 >
-> Assumptions: a true difference (candidate - reference) of 0.050 and a standard deviation of the per-unit differences of 0.685 (standardized effect 0.07).
+> [CAVEAT] The number is only as reliable as the assumed difference and standard deviation; a larger standard deviation needs more units.
 
+
+### Estimating the power level (paired)
+
+Computes the probability (the power) that the paired test detects a given true difference with the number of units available.
+
+```python
+from eval_gate import paired_std, paired_power, interpret_paired_power_at
+
+# reference, candidate: arrays of shape (400, 20), 20 measurements per unit
+std = paired_std(reference, candidate)
+
+# Question: what power does a study have?
+# Fixed: effect, margin, n_units, std, alpha. Solved for: power.
+result = paired_power(
+    n_units=400,  # given: number of units available
+    effect=0.05,  # assumed: the true difference
+    margin=0.15,  # chosen: largest difference still considered equivalent
+    std=std,  # estimated from pilot data
+    alternative_hypothesis="equivalence",  # chosen: alternative hypothesis
+    alpha=0.05,  # chosen: significance level
+)
+
+print(interpret_paired_power_at(result))
+```
+
+> [RESULT] Power 88.9% with 400 units at significance level 0.05. Assumed true difference (candidate - reference): 0.050; assumed standard deviation of the per-unit differences: 0.698 (standardized effect 0.07).
+>
+> [VERDICT] Adequate. Under these assumptions, the test would show that the difference in mean outcome is within ±0.150 88.9% of the time (at least the usual 80%).
+>
+> [CAVEAT] The power is only as reliable as the assumed difference and standard deviation.
+
+
+### Estimating the power level (unpaired)
+
+Computes the probability (the power) that the unpaired test detects a given true difference with the group sizes available.
+
+```python
+from eval_gate import unpaired_std, unpaired_power, interpret_unpaired_power_at
+
+# reference: array of shape (300,), one measurement per unit
+# candidate: array of shape (100,), one measurement per unit
+std = unpaired_std(reference, candidate)
+
+# Question: what power does a study have?
+# Fixed: effect, n_units_reference, n_units_candidate, std, alpha. Solved for: power.
+result = unpaired_power(
+    n_units_reference=300,  # given: number of reference units available
+    n_units_candidate=100,  # given: number of candidate units available
+    effect=0.05,  # assumed: the true difference
+    std=std,  # estimated from pilot data
+    alternative_hypothesis="superiority",  # chosen: alternative hypothesis
+    alpha=0.05,  # chosen: significance level
+)
+
+print(interpret_unpaired_power_at(result))
+```
+
+> [RESULT] Power 6.3% with 300 reference and 100 candidate units at significance level 0.05. Assumed true difference (candidate - reference): 0.050; assumed pooled standard deviation: 3.710 (standardized effect 0.01).
+>
+> [VERDICT] Badly underpowered. Under these assumptions, the test would fail to show that the candidate's mean outcome is higher 93.7% of the time, more often than it succeeds.
+>
+> [CAVEAT] The power is only as reliable as the assumed difference and standard deviation.
+
+## 📖 Documentation
+
+This project uses [MkDocs](https://www.mkdocs.org/) with `mkdocstrings` for API reference generation. Documentation is automatically built and published to GitHub Pages via GitHub Actions whenever changes are merged into the `main` branch.
+
+### Local development
+
+To build and preview the documentation locally:
+
+1. **Clone the repository and sync dependencies** (including the docs group):
+
+```sh
+git clone [https://github.com/GuillaumeZahnd/eval-gate](https://github.com/GuillaumeZahnd/eval-gate)
+cd eval-gate
+uv sync --group docs
+```
+
+2. Run the live-reload development server:
+
+```sh
+uv run mkdocs serve
+```
+
+3. Open `http://127.0.0.1:8000` in your browser.
+
+4. Verify the build (runs in strict mode to catch broken links or invalid docstrings):
+
+```sh
+uv run mkdocs build --strict
+```
+
+## Writing docstrings
+
+When adding or updating Python functions, please use NumPy-style docstrings so they render properly in the API reference:
+
+```python
+def example_function(parameter: type) -> return_type:
+    """Short summary of the function.
+
+    Parameters
+    ----------
+    parameter : type
+        Description of the parameter.
+
+    Returns
+    -------
+    return_type
+        Description of the return value.
+    """
+```

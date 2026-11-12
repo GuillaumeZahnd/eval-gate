@@ -1,5 +1,28 @@
 import math
+
 import numpy as np
+
+
+def check_se_is_non_zero(se: float) -> None:
+    """Check that a standard error is not zero.
+
+    Intended for standard errors where a value of zero indicates that all values
+    are identical within each group.
+
+    Parameters
+    ----------
+    se : float
+        Standard error value to check.
+
+    Raises
+    ------
+    ValueError
+        If ``se`` is equal to zero.
+    """
+    if se == 0.0:
+        raise ValueError(
+            "All values are identical within each group, so the standard error is 0."
+        )
 
 
 def check_finite(value: float, name: str) -> None:
@@ -165,7 +188,7 @@ def check_in_open_interval(value: float, name: str, low: float, high: float) -> 
         raise ValueError(f"'{name}' must be in ({low}, {high}), got {value}.")
 
 
-def check_probability(value: float, name: str) -> None:
+def check_in_open_interval_0_1(value: float, name: str) -> None:
     """Check that a value is a probability in the open interval ``(0, 1)``.
 
     Intended for confidence levels, significance levels and statistical power, where
@@ -199,4 +222,6 @@ def check_min_units(n: int, what: str, minimum: int) -> None:
         If ``n < minimum``.
     """
     if n < minimum:
-        raise ValueError(f"At least {minimum} units are required to compute {what}, got {n}.")
+        raise ValueError(
+            f"At least {minimum} units are required to compute {what}, got {n}."
+        )

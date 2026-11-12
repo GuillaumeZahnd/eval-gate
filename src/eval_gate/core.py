@@ -1,13 +1,12 @@
 from dataclasses import dataclass
 from typing import Literal, get_args
 
-
 # Alternative hypotheses; comments give the null (Δ = true mean(Candidate - Reference), m = margin > 0).
 AlternativeHypothesis = Literal[
-    "two_sided",        # H0: Δ = 0
-    "superiority",      # H0: Δ ≤ 0
+    "two_sided",  # H0: Δ = 0
+    "superiority",  # H0: Δ ≤ 0
     "non_inferiority",  # H0: Δ ≤ -m
-    "equivalence",      # H0: |Δ| ≥ m
+    "equivalence",  # H0: |Δ| ≥ m
 ]
 ALTERNATIVE_HYPOTHESES: tuple[str, ...] = get_args(AlternativeHypothesis)
 
@@ -54,19 +53,28 @@ class HypothesisSpec:
         if not self.needs_margin:
             return 0.0
         if not margin > 0.0:
-            raise ValueError(f"'{self.name}' requires a positive 'margin', got {margin}.")
+            raise ValueError(
+                f"'{self.name}' requires a positive 'margin', got {margin}."
+            )
         return float(margin)
 
 
-_SPECS = {s.name: s for s in (
-    HypothesisSpec("two_sided", "two_sided"),
-    HypothesisSpec("superiority", "greater"),
-    HypothesisSpec("non_inferiority", "greater", needs_margin=True),
-    HypothesisSpec("equivalence", "equivalence", needs_margin=True),
-)}
+_SPECS = {
+    s.name: s
+    for s in (
+        HypothesisSpec("two_sided", "two_sided"),
+        HypothesisSpec("superiority", "greater"),
+        HypothesisSpec("non_inferiority", "greater", needs_margin=True),
+        HypothesisSpec("equivalence", "equivalence", needs_margin=True),
+    )
+}
 
-if set(_SPECS) != set(ALTERNATIVE_HYPOTHESES):  # fail fast if the table drifts from the Literal
-    raise RuntimeError("HypothesisSpec table is out of sync with AlternativeHypothesis.")
+if set(_SPECS) != set(
+    ALTERNATIVE_HYPOTHESES
+):  # fail fast if the table drifts from the Literal
+    raise RuntimeError(
+        "HypothesisSpec table is out of sync with AlternativeHypothesis."
+    )
 
 
 def get_spec(alternative_hypothesis: str) -> HypothesisSpec:

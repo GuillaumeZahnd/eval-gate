@@ -1,12 +1,18 @@
 import numpy as np
 import pytest
 
-from eval_gate import standardized_distribution, DISTRIBUTIONS
+from eval_gate import DISTRIBUTIONS, standardized_distribution
 
 
 def test_distributions_constant():
     """Verify that the available distributions constant matches the expected set of supported types."""
-    assert set(DISTRIBUTIONS) == {"gaussian", "uniform", "student_t", "lognormal", "bimodal"}
+    assert set(DISTRIBUTIONS) == {
+        "gaussian",
+        "uniform",
+        "student_t",
+        "lognormal",
+        "bimodal",
+    }
 
 
 @pytest.mark.parametrize("distribution", DISTRIBUTIONS)
@@ -20,9 +26,15 @@ def test_standardized_distribution_moments(distribution: str) -> None:
 @pytest.mark.parametrize("distribution", DISTRIBUTIONS)
 def test_multidimensional_shape(distribution):
     """Verify that generated distributions correctly handle 1D and 2D shape specifications."""
-    assert standardized_distribution(distribution, (50, 10), np.random.default_rng(0)).shape == (50, 10)
-    assert standardized_distribution(distribution, (50,), np.random.default_rng(0)).shape == (50,)
-    assert standardized_distribution(distribution, 50, np.random.default_rng(0)).shape == (50,)
+    assert standardized_distribution(
+        distribution, (50, 10), np.random.default_rng(0)
+    ).shape == (50, 10)
+    assert standardized_distribution(
+        distribution, (50,), np.random.default_rng(0)
+    ).shape == (50,)
+    assert standardized_distribution(
+        distribution, 50, np.random.default_rng(0)
+    ).shape == (50,)
 
 
 @pytest.mark.parametrize("distribution", DISTRIBUTIONS)
@@ -40,7 +52,7 @@ def test_unsupported_distribution_raises(unsupported):
 
 
 @pytest.mark.parametrize("invalid_units", [0, -1, (0, 5), (5, -1), (-2,)])
-def test_invalid_nb_units_raises(invalid_units):
+def test_invalid_n_units_raises(invalid_units):
     """Verify that passing non-positive values or shapes for units raises a ValueError."""
     rng = np.random.default_rng(0)
     with pytest.raises(ValueError):

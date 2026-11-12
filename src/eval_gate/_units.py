@@ -1,8 +1,9 @@
 import math
-import numpy as np
 from typing import NamedTuple
 
-from ._checks import check_min_units
+import numpy as np
+
+from ._checks import check_all_finite, check_min_units
 
 
 class MeanSE(NamedTuple):
@@ -13,13 +14,14 @@ class MeanSE(NamedTuple):
     mean : float
         Mean of the per-unit values.
     se : float
-        Standard error of the mean, ``std(ddof=1) / sqrt(nb_units)``.
-    nb_units : int
+        Standard error of the mean, ``std(ddof=1) / sqrt(n_units)``.
+    n_units : int
         Number of units.
     """
+
     mean: float
     se: float
-    nb_units: int
+    n_units: int
 
 
 def unit_means(outcomes: np.ndarray) -> np.ndarray:
@@ -62,8 +64,15 @@ def mean_and_se(outcomes: np.ndarray) -> MeanSE:
         Mean, standard error and number of units.
     """
     u = unit_means(outcomes)
+    check_all_finite(u, "outcomes")
+
     n = u.shape[0]
     check_min_units(n, what="the standard error", minimum=2)
+
+    # Identical values must give exactly 0: a floating-point mean can leave a ~1e-17 residual in the std.
+    if np.ptp(u) == 0:
+        return MeanSE(float(u[0]), 0.0, n)
+
     return MeanSE(float(u.mean()), float(u.std(ddof=1) / math.sqrt(n)), n)
 
 
@@ -75,14 +84,14 @@ def paired_differences(reference: np.ndarray, candidate: np.ndarray) -> np.ndarr
     Parameters
     ----------
     reference : np.ndarray
-        Reference (baseline) measurements of shape ``(nb_units,)`` or ``(nb_units, nb_replicates)``.
+        Reference (baseline) measurements of shape ``(n_units,)`` or ``(n_units, n_replicates)``.
     candidate : np.ndarray
         Candidate measurements, same number of units as ``reference``. The number of replicates may differ.
 
     Returns
     -------
     np.ndarray
-        Per-unit differences ``candidate - reference``, of shape ``(nb_units,)``.
+        Per-unit differences ``candidate - reference``, of shape ``(n_units,)``.
 
     Raises
     ------
@@ -92,20 +101,21 @@ def paired_differences(reference: np.ndarray, candidate: np.ndarray) -> np.ndarr
     reference_units = unit_means(reference)
     candidate_units = unit_means(candidate)
     if reference_units.shape != candidate_units.shape:
-        raise ValueError(f"Number of units differs: {reference_units.shape[0]} vs {candidate_units.shape[0]}.")
+        raise ValueError(
+            f"Number of units differs: {reference_units.shape[0]} vs {candidate_units.shape[0]}."
+        )
     return candidate_units - reference_units
 
 
 def paired_std(reference: np.ndarray, candidate: np.ndarray) -> float:
     """Standard deviation of the per-unit paired differences ``candidate - reference``.
 
-    Typically estimated from pilot data and passed as ``std`` to the power and
-    sample-size functions.
+    Typically estimated from pilot data and passed as ``std`` to the power and sample-size functions for paired tests.
 
     Parameters
     ----------
     reference : np.ndarray
-        Reference (baseline) measurements, shape ``(nb_units,)`` or ``(nb_units, nb_replicates)``.
+        Reference (baseline) measurements, shape ``(n_units,)`` or ``(n_units, n_replicates)``.
     candidate : np.ndarray
         Candidate measurements, same number of units as ``reference``. The number of replicates may differ.
 
@@ -122,3 +132,95 @@ def paired_std(reference: np.ndarray, candidate: np.ndarray) -> float:
     differences = paired_differences(reference, candidate)
     check_min_units(differences.shape[0], what="the standard deviation", minimum=2)
     return float(differences.std(ddof=1))
+
+
+def unpaired_std(reference: np.ndarray, candidate: np.ndarray) -> float:
+    """Pooled standard deviation of two independent groups.
+
+    Typically estimated from pilot data and passed as ``std`` to the power and sample-size functions for unpaired tests.
+
+    Parameters
+    ----------
+    reference : np.ndarray
+        Reference (baseline) measurements, shape ``(n_units,)`` or ``(n_units, n_replicates)``.
+    candidate : np.ndarray
+        Candidate measurements. The number of units and replicates may differ.
+
+    Returns
+    -------
+    float
+        Pooled sample standard deviation of the two groups, after averaging replicates within each unit.
+
+    Notes
+    -----
+    Replicates are averaged within each unit first. The groups may have different numbers of units and replicates.
+    """
+    reference_units = unit_means(reference)
+    candidate_units = unit_means(candidate)
+
+    n_units_reference = reference_units.shape[0]
+    n_units_candidate = candidate_units.shape[0]
+
+    check_min_units(n_units_reference, what="the standard deviation", minimum=2)
+    check_min_units(n_units_candidate, what="the standard deviation", minimum=2)
+
+    sum_of_squares_reference = float(
+        np.sum((reference_units - reference_units.mean()) ** 2)
+    )
+    sum_of_squares_candidate = float(
+        np.sum((candidate_units - candidate_units.mean()) ** 2)
+    )
+    df = n_units_reference + n_units_candidate - 2
+
+    return float(math.sqrt((sum_of_squares_reference + sum_of_squares_candidate) / df))
+
+
+class UnpairedDifference(NamedTuple):
+    """Difference between two independent group means, with its standard error.
+
+    Attributes
+    ----------
+    estimate : float
+        ``mean(candidate) - mean(reference)``.
+    se : float
+        Welch standard error, ``sqrt(se_reference**2 + se_candidate**2)``; the group variances are not assumed equal.
+    n_units_reference : int
+        Number of units in the reference group.
+    n_units_candidate : int
+        Number of units in the candidate group.
+    """
+
+    estimate: float
+    se: float
+    n_units_reference: int
+    n_units_candidate: int
+
+
+def unpaired_difference(
+    reference: np.ndarray, candidate: np.ndarray
+) -> UnpairedDifference:
+    """Compute the difference of two independent group means (candidate - reference) and its standard error.
+
+    Each group is summarized by :func:`mean_and_se` (replicates averaged within each unit). The groups may have a
+    different number of units.
+
+    Parameters
+    ----------
+    reference : np.ndarray
+        Reference (baseline) measurements, shape ``(n_units,)`` or ``(n_units, n_replicates)``.
+    candidate : np.ndarray
+        Candidate measurements. The number of units and replicates may differ.
+
+    Returns
+    -------
+    UnpairedDifference
+        Difference, Welch standard error, and the number of units in each group.
+    """
+    r = mean_and_se(reference)
+    c = mean_and_se(candidate)
+    return UnpairedDifference(
+        estimate=c.mean - r.mean,
+        se=math.hypot(r.se, c.se),
+        n_units_reference=r.n_units,
+        n_units_candidate=c.n_units,
+    )

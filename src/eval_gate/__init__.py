@@ -1,49 +1,78 @@
-from .standardized_distribution import standardized_distribution, DISTRIBUTIONS
-from .simulation import Simulation, simulate
-from .sem import compute_sem, SEMResult
-from .confidence import confidence_bounds
-from .p_value import paired_p_value, PValueResult
-from .power import PowerResult, PowerAtResult, paired_power, required_nb_units
-from ._units import paired_std
-from .effect_size import compute_paired_effect_size, PairedEffectResult
-from .interpret import (
-    interpret_sem,
-    interpret_p_value,
-    interpret_effect_size,
-    interpret_power,
-    interpret_power_at,
+from ._units import (
+    paired_std,
+    unpaired_std,
 )
-
+from .confidence import confidence_bounds
+from .effect_size import (
+    PairedEffectResult,
+    UnpairedEffectResult,
+    compute_paired_effect_size,
+    compute_unpaired_effect_size,
+)
+from .interpret import (
+    interpret_paired_effect_size,
+    interpret_paired_p_value,
+    interpret_paired_power,
+    interpret_paired_power_at,
+    interpret_sem,
+    interpret_unpaired_effect_size,
+    interpret_unpaired_p_value,
+    interpret_unpaired_power,
+    interpret_unpaired_power_at,
+)
+from .p_value import (
+    PairedPValueResult,
+    UnpairedPValueResult,
+    paired_p_value,
+    unpaired_p_value,
+)
+from .power import (
+    PairedPowerAtResult,
+    PairedPowerResult,
+    UnpairedPowerAtResult,
+    UnpairedPowerResult,
+    paired_power,
+    required_paired_n_units,
+    required_unpaired_n_units,
+    unpaired_power,
+)
+from .sem import SEMResult, compute_sem
+from .simulation import Simulation, simulate
+from .standardized_distribution import DISTRIBUTIONS, standardized_distribution
 
 __all__ = [
-    # standardized_distribution
-    "standardized_distribution",
     "DISTRIBUTIONS",
-    # simulation
-    "Simulation",
-    "simulate",
-    # sem
-    "compute_sem",
-    "SEMResult",
-    # interpret
-    "interpret_sem",
-    "interpret_p_value",
-    "interpret_effect_size",
-    "interpret_power",
-    "interpret_power_at",
-    # confidence
-    "confidence_bounds",
-    # p_value
-    "paired_p_value",
-    "PValueResult",
-    # power
-    "paired_power",
-    "required_nb_units",
-    "PowerResult",
-    "PowerAtResult",
-    # _units
-    "paired_std",
-    # effect_size
-    "compute_paired_effect_size",
     "PairedEffectResult",
+    "PairedPValueResult",
+    "PairedPowerAtResult",
+    "PairedPowerResult",
+    "SEMResult",
+    "Simulation",
+    "UnpairedEffectResult",
+    "UnpairedPValueResult",
+    "UnpairedPowerAtResult",
+    "UnpairedPowerResult",
+    "compute_paired_effect_size",
+    "compute_sem",
+    "compute_unpaired_effect_size",
+    "confidence_bounds",
+    "interpret_paired_effect_size",
+    "interpret_paired_p_value",
+    "interpret_paired_power",
+    "interpret_paired_power_at",
+    "interpret_sem",
+    "interpret_unpaired_effect_size",
+    "interpret_unpaired_p_value",
+    "interpret_unpaired_power",
+    "interpret_unpaired_power_at",
+    "paired_p_value",
+    "paired_power",
+    "paired_std",
+    "required_paired_n_units",
+    "required_unpaired_n_units",
+    "simulate",
+    "standardized_distribution",
+    "unpaired_p_value",
+    "unpaired_power",
+    "unpaired_std",
 ]

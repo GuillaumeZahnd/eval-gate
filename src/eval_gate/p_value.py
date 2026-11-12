@@ -41,8 +41,8 @@ class PairedPValueResult:
     estimate : float
         Observed mean paired difference, ``mean(b - a)`` (candidate - reference).
     se : float
-        Standard error of the estimate, ``std(ddof=1) / sqrt(nb_units)``.
-    nb_units : int
+        Standard error of the estimate, ``std(ddof=1) / sqrt(n_units)``.
+    n_units : int
         Number of paired units.
     alpha : float
         Significance level of the decision. It does not affect ``p_value``.
@@ -52,7 +52,7 @@ class PairedPValueResult:
     margin: float
     estimate: float
     se: float
-    nb_units: int
+    n_units: int
     alpha: float
 
     @property
@@ -109,7 +109,7 @@ def paired_p_value(
     spec = get_spec(alternative_hypothesis)
     m = spec.margin_for(margin)
 
-    diff, se, nb_units = mean_and_se(paired_differences(a, b))
+    diff, se, n_units = mean_and_se(paired_differences(a, b))
 
     check_se_is_non_zero(se)
 
@@ -126,7 +126,7 @@ def paired_p_value(
         margin=m,
         estimate=diff,
         se=se,
-        nb_units=nb_units,
+        n_units=n_units,
         alpha=alpha,
     )
 
@@ -147,9 +147,9 @@ class UnpairedPValueResult:
         Observed difference of means, ``mean(candidate) - mean(reference)``.
     se : float
         Welch standard error of the estimate, ``sqrt(s_reference**2 / n_reference + s_candidate**2 / n_candidate)``.
-    nb_units_reference : int
+    n_units_reference : int
         Number of units in the reference group.
-    nb_units_candidate : int
+    n_units_candidate : int
         Number of units in the candidate group.
     alpha : float
         Significance level of the decision. It does not affect ``p_value``.
@@ -159,8 +159,8 @@ class UnpairedPValueResult:
     margin: float
     estimate: float
     se: float
-    nb_units_reference: int
-    nb_units_candidate: int
+    n_units_reference: int
+    n_units_candidate: int
     alpha: float
 
     @property
@@ -185,9 +185,9 @@ def unpaired_p_value(
     Parameters
     ----------
     a : np.ndarray
-        Reference (baseline) measurements of shape ``(nb_reference,)`` or ``(nb_reference, k)``.
+        Reference (baseline) measurements of shape ``(n_reference,)`` or ``(n_reference, k)``.
     b : np.ndarray
-        Candidate measurements of shape ``(nb_candidate,)`` or ``(nb_candidate, k)``.
+        Candidate measurements of shape ``(n_candidate,)`` or ``(n_candidate, k)``.
     alternative_hypothesis : AlternativeHypothesis, default="two_sided"
         The alternative hypothesis being tested; the null hypothesis of each is:
 
@@ -235,7 +235,7 @@ def unpaired_p_value(
         margin=m,
         estimate=difference.estimate,
         se=difference.se,
-        nb_units_reference=difference.nb_units_reference,
-        nb_units_candidate=difference.nb_units_candidate,
+        n_units_reference=difference.n_units_reference,
+        n_units_candidate=difference.n_units_candidate,
         alpha=alpha,
     )

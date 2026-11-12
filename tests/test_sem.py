@@ -14,11 +14,11 @@ SEM = math.sqrt(0.5)
 
 
 class TestEstimates:
-    def test_mean_sem_and_nb_units(self):
+    def test_mean_sem_and_n_units(self):
         result = compute_sem(OUTCOMES)
         assert result.mean == pytest.approx(MEAN)
         assert result.sem == pytest.approx(SEM)
-        assert result.nb_units == 5
+        assert result.n_units == 5
 
     def test_two_units_is_the_minimum(self):
         # std(ddof=1) of [1, 3] is sqrt(2), so the standard error is sqrt(2) / sqrt(2) = 1.
@@ -53,9 +53,9 @@ class TestReplicates:
         y = np.random.default_rng(0).normal(size=(20, 4))
         assert compute_sem(y) == compute_sem(y.mean(axis=1))
 
-    def test_nb_units_counts_units_not_measurements(self):
+    def test_n_units_counts_units_not_measurements(self):
         y = np.arange(7.0)[:, None] + np.zeros((7, 3))
-        assert compute_sem(y).nb_units == 7
+        assert compute_sem(y).n_units == 7
 
 
 class TestInterval:
@@ -93,13 +93,13 @@ class TestCoverage:
     @pytest.mark.parametrize("alternative", ["two_sided", "superiority"])
     def test_interval_covers_the_true_mean_at_the_nominal_rate(self, alternative):
         rng = np.random.default_rng(0)
-        true_mean, nb_experiments = 2.0, 2000
+        true_mean, n_experiments = 2.0, 2000
         covered = 0
-        for _ in range(nb_experiments):
+        for _ in range(n_experiments):
             sample = rng.normal(true_mean, 1.0, size=100)
             result = compute_sem(sample, alternative_hypothesis=alternative)
             covered += result.ci_lower <= true_mean <= result.ci_upper
-        assert covered / nb_experiments == pytest.approx(0.95, abs=0.02)
+        assert covered / n_experiments == pytest.approx(0.95, abs=0.02)
 
 
 class TestResult:
@@ -112,7 +112,7 @@ class TestResult:
         result = compute_sem(OUTCOMES, confidence=0.9, alternative_hypothesis="superiority")
         assert result.confidence == 0.9
         assert result.alternative_hypothesis == "superiority"
-        assert result.nb_units == 5
+        assert result.n_units == 5
 
     def test_result_is_frozen(self):
         result = compute_sem(OUTCOMES)

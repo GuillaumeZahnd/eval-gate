@@ -40,7 +40,7 @@ def test_unsupported_distribution_raises(unsupported):
 
 
 @pytest.mark.parametrize("invalid_units", [0, -1, (0, 5), (5, -1), (-2,)])
-def test_invalid_nb_units_raises(invalid_units):
+def test_invalid_n_units_raises(invalid_units):
     """Verify that passing non-positive values or shapes for units raises a ValueError."""
     rng = np.random.default_rng(0)
     with pytest.raises(ValueError):

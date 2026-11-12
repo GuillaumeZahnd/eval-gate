@@ -256,18 +256,18 @@ class TestCheckAllFinite:
             check_all_finite(np.array([1.0, math.nan]), name)
  
     @pytest.mark.parametrize(
-        "values, nb_bad, size",
+        "values, n_bad, size",
         [
             (np.array([1.0, math.nan, 3.0]), 1, 3),
             (np.array([math.nan, math.inf, -math.inf, 4.0]), 3, 4),
             (np.array([[1.0, math.inf], [math.nan, 4.0]]), 2, 4),
         ],
     )
-    def test_error_message_format_reports_how_many_values_are_bad(self, values, nb_bad, size):
+    def test_error_message_format_reports_how_many_values_are_bad(self, values, n_bad, size):
         with pytest.raises(ValueError) as excinfo:
             check_all_finite(values, "x")
         assert str(excinfo.value) == (
-            f"'x' must contain only finite values, got {nb_bad} non-finite value(s) out of {size}."
+            f"'x' must contain only finite values, got {n_bad} non-finite value(s) out of {size}."
         )
  
     def test_does_not_emit_numpy_warnings(self, recwarn):

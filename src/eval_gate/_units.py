@@ -13,13 +13,13 @@ class MeanSE(NamedTuple):
     mean : float
         Mean of the per-unit values.
     se : float
-        Standard error of the mean, ``std(ddof=1) / sqrt(nb_units)``.
-    nb_units : int
+        Standard error of the mean, ``std(ddof=1) / sqrt(n_units)``.
+    n_units : int
         Number of units.
     """
     mean: float
     se: float
-    nb_units: int
+    n_units: int
 
 
 def unit_means(outcomes: np.ndarray) -> np.ndarray:
@@ -78,14 +78,14 @@ def paired_differences(reference: np.ndarray, candidate: np.ndarray) -> np.ndarr
     Parameters
     ----------
     reference : np.ndarray
-        Reference (baseline) measurements of shape ``(nb_units,)`` or ``(nb_units, nb_replicates)``.
+        Reference (baseline) measurements of shape ``(n_units,)`` or ``(n_units, n_replicates)``.
     candidate : np.ndarray
         Candidate measurements, same number of units as ``reference``. The number of replicates may differ.
 
     Returns
     -------
     np.ndarray
-        Per-unit differences ``candidate - reference``, of shape ``(nb_units,)``.
+        Per-unit differences ``candidate - reference``, of shape ``(n_units,)``.
 
     Raises
     ------
@@ -107,7 +107,7 @@ def paired_std(reference: np.ndarray, candidate: np.ndarray) -> float:
     Parameters
     ----------
     reference : np.ndarray
-        Reference (baseline) measurements, shape ``(nb_units,)`` or ``(nb_units, nb_replicates)``.
+        Reference (baseline) measurements, shape ``(n_units,)`` or ``(n_units, n_replicates)``.
     candidate : np.ndarray
         Candidate measurements, same number of units as ``reference``. The number of replicates may differ.
 
@@ -134,7 +134,7 @@ def unpaired_std(reference: np.ndarray, candidate: np.ndarray) -> float:
     Parameters
     ----------
     reference : np.ndarray
-        Reference (baseline) measurements, shape ``(nb_units,)`` or ``(nb_units, nb_replicates)``.
+        Reference (baseline) measurements, shape ``(n_units,)`` or ``(n_units, n_replicates)``.
     candidate : np.ndarray
         Candidate measurements. The number of units and replicates may differ.
 
@@ -172,15 +172,15 @@ class UnpairedDifference(NamedTuple):
         ``mean(candidate) - mean(reference)``.
     se : float
         Welch standard error, ``sqrt(se_reference**2 + se_candidate**2)``; the group variances are not assumed equal.
-    nb_units_reference : int
+    n_units_reference : int
         Number of units in the reference group.
-    nb_units_candidate : int
+    n_units_candidate : int
         Number of units in the candidate group.
     """
     estimate: float
     se: float
-    nb_units_reference: int
-    nb_units_candidate: int
+    n_units_reference: int
+    n_units_candidate: int
 
 
 def unpaired_difference(reference: np.ndarray, candidate: np.ndarray) -> UnpairedDifference:
@@ -192,7 +192,7 @@ def unpaired_difference(reference: np.ndarray, candidate: np.ndarray) -> Unpaire
     Parameters
     ----------
     reference : np.ndarray
-        Reference (baseline) measurements, shape ``(nb_units,)`` or ``(nb_units, nb_replicates)``.
+        Reference (baseline) measurements, shape ``(n_units,)`` or ``(n_units, n_replicates)``.
     candidate : np.ndarray
         Candidate measurements. The number of units and replicates may differ.
 
@@ -206,6 +206,6 @@ def unpaired_difference(reference: np.ndarray, candidate: np.ndarray) -> Unpaire
     return UnpairedDifference(
         estimate=c.mean - r.mean,
         se=math.hypot(r.se, c.se),
-        nb_units_reference=r.nb_units,
-        nb_units_candidate=c.nb_units,
+        n_units_reference=r.n_units,
+        n_units_candidate=c.n_units,
     )

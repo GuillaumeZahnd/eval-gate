@@ -12,7 +12,7 @@ from eval_gate import (
     simulate,
     paired_std,
     paired_power,
-    interpret_power_at
+    interpret_paired_power_at
 )
 
 
@@ -56,4 +56,4 @@ if __name__ == "__main__":
         alpha=0.05,  # chosen: significance level
     )
 
-    print(interpret_power_at(achieved))
+    print(interpret_paired_power_at(achieved))

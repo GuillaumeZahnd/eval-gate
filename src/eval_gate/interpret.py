@@ -1,6 +1,11 @@
 from .sem import SEMResult
 from .p_value import PairedPValueResult, UnpairedPValueResult
-from .power import PowerResult, PowerAtResult
+from .power import (
+    PairedPowerResult,
+    UnpairedPowerResult,
+    PairedPowerAtResult,
+    UnpairedPowerAtResult,
+)
 from .effect_size import PairedEffectResult, UnpairedEffectResult, magnitude_label
 
 
@@ -51,7 +56,7 @@ def interpret_sem(
         return format(x, fmt)
 
     level = _pct(result.confidence)
-    n = result.nb_units
+    n = result.n_units
     alternative_hypothesis = result.alternative_hypothesis
     ci_lower = num(result.ci_lower)
     ci_upper = num(result.ci_upper)
@@ -209,7 +214,7 @@ def interpret_paired_p_value(
     str
         A one-paragraph interpretive summary.
     """
-    n = result.nb_units
+    n = result.n_units
     return _interpret_p_value(
         result,
         metric=metric,
@@ -243,8 +248,8 @@ def interpret_unpaired_p_value(
     str
         A one-paragraph interpretive summary.
     """
-    n_reference = result.nb_units_reference
-    n_candidate = result.nb_units_candidate
+    n_reference = result.n_units_reference
+    n_candidate = result.n_units_candidate
     smallest = min(n_reference, n_candidate)
     return _interpret_p_value(
         result,
@@ -256,14 +261,14 @@ def interpret_unpaired_p_value(
     )
 
 
-def interpret_power(
-    result: PowerResult,
+def interpret_paired_power(
+    result: PairedPowerResult,
     *,
     metric: str = "mean outcome",
     unit: str = "units",
     fmt: str = ".3f",
 ) -> str:
-    """Return a plain-language reading of a ``required_nb_units`` result.
+    """Return a plain-language reading of a ``required_n_units`` result.
 
     The text has one line per element:
 
@@ -276,8 +281,8 @@ def interpret_power(
 
     Parameters
     ----------
-    result : PowerResult
-        The result object returned by ``required_nb_units``.
+    result : PairedPowerResult
+        The result object returned by ``required_n_units``.
     metric : str, default="mean outcome"
         What is being compared, e.g. ``"mean accuracy"``.
     unit : str, default="units"
@@ -295,7 +300,7 @@ def interpret_power(
     def num(x: float) -> str:
         return format(x, fmt)
 
-    n = result.nb_units
+    n = result.n_units
     margin = num(result.margin)
 
     # Line 1: the number, its goal, and the criteria it meets
@@ -339,8 +344,67 @@ def interpret_power(
     return "\n".join([head, assumptions, *small_n, about])
 
 
-def interpret_power_at(
-    result: PowerAtResult,
+def interpret_unpaired_power(
+    result: UnpairedPowerResult,
+    *,
+    metric: str = "mean outcome",
+    unit: str = "units",
+    fmt: str = ".3f",
+) -> str:
+    """Return a plain-language reading of an unpaired ``required_n_units`` result."""
+
+    def num(x: float) -> str:
+        return format(x, fmt)
+
+    n_ref = result.n_units_reference
+    n_cand = result.n_units_candidate
+    smallest = min(n_ref, n_cand)
+    margin = num(result.margin)
+
+    # Line 1: the number per group, goal, and criteria
+    match result.alternative_hypothesis:
+        case "two_sided":
+            goal = f"detect a difference in {metric}"
+        case "superiority":
+            goal = f"show that the candidate's {metric} is higher"
+        case "non_inferiority":
+            goal = f"show that the candidate's {metric} is not lower than the reference's by {margin} or more"
+        case "equivalence":
+            goal = f"show that the difference in {metric} is within ±{margin}"
+
+    head = (
+        f"{n_ref} reference and {n_cand} candidate {unit} are needed to {goal}, "
+        f"with at least {_pct(result.target_power)} power at significance level {result.alpha:g}."
+    )
+
+    # Line 2: the assumptions (using pooled std)
+    assumptions = (
+        f"Assumptions: a true difference (candidate - reference) of {num(result.effect)} "
+        f"and a pooled standard deviation of {num(result.std)} "
+        f"(standardized effect {result.effect / result.std:.2f})."
+    )
+
+    # Line 3: caveat when either sample is small
+    small_n = []
+    if smallest < SMALL_N:
+        small_n.append(
+            f"The smaller group has only {smallest} {unit} (less than {SMALL_N}): "
+            "the number is approximate and should be treated as a lower bound."
+        )
+
+    # Line 4: About the test
+    about = (
+        "About the test: power is the probability that the test rejects the null hypothesis if the assumed "
+        "difference holds. It uses a normal approximation with the pooled standard deviation taken as known; "
+        "if the true variability is larger than assumed, or estimated from small groups, "
+        "the actual power can be lower."
+    )
+
+    return "\n".join([head, assumptions, *small_n, about])
+
+
+def interpret_paired_power_at(
+    result: PairedPowerAtResult,
     *,
     metric: str = "mean outcome",
     unit: str = "units",
@@ -366,7 +430,7 @@ def interpret_power_at(
 
     Parameters
     ----------
-    result : PowerAtResult
+    result : PairedPowerAtResult
         The result object returned by ``paired_power``.
     metric : str, default="mean outcome"
         What is being compared, e.g. ``"mean accuracy"``.
@@ -385,7 +449,7 @@ def interpret_power_at(
     def num(x: float) -> str:
         return format(x, fmt)
 
-    n = result.nb_units
+    n = result.n_units
     power = result.power
     margin = num(result.margin)
 
@@ -464,6 +528,10 @@ def interpret_power_at(
     )
 
     return "\n".join([head, conclusion, assumptions, *small_n, about])
+
+
+def interpret_unpaired_power_at():
+    return None ## TODO
 
 
 def _interpret_effect_size(
@@ -594,10 +662,7 @@ def interpret_paired_effect_size(
     str
         A short plain-language reading of a ``compute_paired_effect_size`` result.
     """
-    n = result.nb_units
-
-    def num(x: float) -> str:
-        return format(x, fmt)
+    n = result.n_units
 
     return _interpret_effect_size(
         result,
@@ -639,12 +704,9 @@ def interpret_unpaired_effect_size(
     str
         A short plain-language reading of a ``compute_unpaired_effect_size`` result.
     """
-    n_reference = result.nb_units_reference
-    n_candidate = result.nb_units_candidate
+    n_reference = result.n_units_reference
+    n_candidate = result.n_units_candidate
     smallest = min(n_reference, n_candidate)
-
-    def num(x: float) -> str:
-        return format(x, fmt)
 
     return _interpret_effect_size(
         result,

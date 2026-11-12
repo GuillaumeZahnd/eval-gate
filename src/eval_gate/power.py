@@ -6,7 +6,7 @@ from .core import AlternativeHypothesis, Direction, get_spec
 from ._checks import check_in_open_interval_0_1, check_finite_strictly_positive, check_finite
 
 
-_MAX_NB_UNITS = 10**9  # Upper limit of the search for the required number of units.
+_MAX_N_UNITS = 10**9  # Upper limit of the search for the required number of units.
 
 
 @dataclass(frozen=True)
@@ -359,7 +359,7 @@ def required_unpaired_n_units(
     return UnpairedPowerResult(target_power=power, **asdict(achieved))
 
 
-def _find_required_n(reaches_target, max_units: int = _MAX_NB_UNITS) -> int:
+def _find_required_n(reaches_target, max_units: int = _MAX_N_UNITS) -> int:
     """Shared bisection and exponential growth search for required sample size."""
     lo = 2
     hi = 2

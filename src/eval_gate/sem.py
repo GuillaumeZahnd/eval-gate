@@ -22,7 +22,7 @@ class SEMResult:
     mean : float
         Mean of the per-unit outcomes.
     sem : float
-        Standard error of the mean, ``std(ddof=1) / sqrt(nb_units)``.
+        Standard error of the mean, ``std(ddof=1) / sqrt(n_units)``.
     ci_lower : float
         Lower bound of the confidence interval.
     ci_upper : float
@@ -31,7 +31,7 @@ class SEMResult:
         Confidence level.
     alternative_hypothesis : SEMAlternative
         Sidedness of the interval (``"two_sided"`` or ``"superiority"``).
-    nb_units : int
+    n_units : int
         Number of units.
     """
     mean: float
@@ -40,7 +40,7 @@ class SEMResult:
     ci_upper: float
     confidence: float
     alternative_hypothesis: SEMAlternative
-    nb_units: int
+    n_units: int
 
 
 def compute_sem(
@@ -58,8 +58,8 @@ def compute_sem(
     outcomes : np.ndarray
         Measured outcomes, one entry per unit. Either:
 
-        - shape ``(nb_units,)``: one outcome per unit.
-        - shape ``(nb_units, nb_replicates_per_unit)``: replicates are first averaged within each unit, so
+        - shape ``(n_units,)``: one outcome per unit.
+        - shape ``(n_units, n_replicates_per_unit)``: replicates are first averaged within each unit, so
           the SEM is clustered at the unit level, then these unit means are treated as independent draws.
     confidence : float, default=0.95
         Confidence level of the interval, strictly between 0 and 1.
@@ -93,7 +93,7 @@ def compute_sem(
         )
     check_in_open_interval_0_1(confidence, "confidence")
 
-    mean, sem, nb_units = mean_and_se(outcomes)
+    mean, sem, n_units = mean_and_se(outcomes)
 
     ci_lower, ci_upper = confidence_bounds(
         alternative_hypothesis=alternative_hypothesis,
@@ -109,5 +109,5 @@ def compute_sem(
         ci_upper=ci_upper,
         confidence=confidence,
         alternative_hypothesis=alternative_hypothesis,
-        nb_units=nb_units,
+        n_units=n_units,
     )

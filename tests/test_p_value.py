@@ -35,7 +35,7 @@ NULL_BOUNDARIES = [
     ("non_inferiority", 0.5, -0.5),
     ("equivalence", 0.5, 0.5),
 ]
-NB_EXPERIMENTS = 2000
+N_EXPERIMENTS = 2000
 
 
 class TestNormalPValue:
@@ -77,11 +77,11 @@ class TestNormalPValue:
 
 
 class TestPairedPValue:
-    def test_estimate_se_and_nb_units(self):
+    def test_estimate_se_and_n_units(self):
         result = paired_p_value(PAIRED_REFERENCE, PAIRED_CANDIDATE)
         assert result.estimate == pytest.approx(PAIRED_ESTIMATE)
         assert result.se == pytest.approx(PAIRED_SE)
-        assert result.nb_units == 5
+        assert result.n_units == 5
 
     def test_two_sided_p_value(self):
         result = paired_p_value(PAIRED_REFERENCE, PAIRED_CANDIDATE)
@@ -152,8 +152,8 @@ class TestUnpairedPValue:
         result = unpaired_p_value(UNPAIRED_REFERENCE, UNPAIRED_CANDIDATE)
         assert result.estimate == pytest.approx(UNPAIRED_ESTIMATE)
         assert result.se == pytest.approx(UNPAIRED_SE)
-        assert result.nb_units_reference == 5
-        assert result.nb_units_candidate == 4
+        assert result.n_units_reference == 5
+        assert result.n_units_candidate == 4
 
     def test_standard_error_is_welch_not_pooled(self):
         pooled_variance = (4 * 2.5 + 3 * (20 / 3)) / 7
@@ -187,7 +187,7 @@ class TestUnpairedPValue:
 
     def test_groups_may_have_equal_sizes(self):
         result = unpaired_p_value(UNPAIRED_REFERENCE, UNPAIRED_REFERENCE + 1.0)
-        assert result.nb_units_reference == result.nb_units_candidate == 5
+        assert result.n_units_reference == result.n_units_candidate == 5
 
     def test_replicates_are_averaged_within_units(self):
         rng = np.random.default_rng(0)
@@ -216,7 +216,7 @@ class TestResultDecision:
             margin=0.0,
             estimate=1.0,
             se=1.0,
-            nb_units=10,
+            n_units=10,
             alpha=alpha,
         )
 
@@ -228,8 +228,8 @@ class TestResultDecision:
             margin=0.0,
             estimate=1.0,
             se=1.0,
-            nb_units_reference=10,
-            nb_units_candidate=12,
+            n_units_reference=10,
+            n_units_candidate=12,
             alpha=alpha,
         )
 
@@ -246,22 +246,22 @@ class TestTypeIErrorRate:
     def test_paired_rejection_rate_on_the_null_boundary_is_alpha(self, alternative, margin, true_difference):
         rng = np.random.default_rng(0)
         rejected = 0
-        for _ in range(NB_EXPERIMENTS):
+        for _ in range(N_EXPERIMENTS):
             reference = rng.normal(size=100)
             candidate = reference + rng.normal(true_difference, 1.0, size=100)
             rejected += paired_p_value(reference, candidate, alternative, margin=margin).reject
-        assert rejected / NB_EXPERIMENTS == pytest.approx(0.05, abs=0.02)
+        assert rejected / N_EXPERIMENTS == pytest.approx(0.05, abs=0.02)
 
     @pytest.mark.parametrize(("alternative", "margin", "true_difference"), NULL_BOUNDARIES)
     def test_unpaired_rejection_rate_on_the_null_boundary_is_alpha(self, alternative, margin, true_difference):
         # Unequal sizes and unequal variances: the Welch standard error must keep the rate at alpha.
         rng = np.random.default_rng(0)
         rejected = 0
-        for _ in range(NB_EXPERIMENTS):
+        for _ in range(N_EXPERIMENTS):
             reference = rng.normal(0.0, 1.0, size=150)
             candidate = rng.normal(true_difference, 2.0, size=100)
             rejected += unpaired_p_value(reference, candidate, alternative, margin=margin).reject
-        assert rejected / NB_EXPERIMENTS == pytest.approx(0.05, abs=0.02)
+        assert rejected / N_EXPERIMENTS == pytest.approx(0.05, abs=0.02)
 
 
 class TestInputValidation:

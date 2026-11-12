@@ -20,7 +20,6 @@ if __name__ == "__main__":
 
     population_size = 200
     n_resample = 1
-    alternative_hypothesis = "superiority"
 
     # Pilot data, used only to estimate the variability.
     reference = simulate(
@@ -46,7 +45,7 @@ if __name__ == "__main__":
 
     # Question: how many units are needed to detect an effect?
     # Fixed: effect, std, alpha, power. Solved for: n_units.
-    design = required_paired_n_units(
+    result = required_paired_n_units(
         effect=0.15,  # assumed: the smallest true difference worth detecting
         std=std,  # estimated from pilot data
         alternative_hypothesis="superiority",  # chosen
@@ -54,5 +53,5 @@ if __name__ == "__main__":
         alpha=0.05,  # chosen: significance level
     )
 
-    print(interpret_paired_power(design))
+    print(interpret_paired_power(result))
 

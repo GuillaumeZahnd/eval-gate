@@ -213,7 +213,7 @@ def unpaired_power(
     n_units_candidate: int,
     effect: float,
     std: float,
-    alternative_hypothesis: AlternativeHypothesis = "two_sidèd" if False else "two_sided",
+    alternative_hypothesis: AlternativeHypothesis = "two_sided",
     *,
     margin: float = 0.0,
     alpha: float = 0.05,
@@ -261,12 +261,12 @@ def unpaired_power(
         raise ValueError(
             f"At least 2 units are required in each group, got reference={n_units_reference}, candidate={n_units_candidate}."
         )
-    if n_units_reference != n_units_candidate:
-        raise ValueError("Power evaluation currently requires balanced group sizes (n_units_reference == n_units_candidate).")
 
     spec, m = _prepare_power_params(effect, std, alternative_hypothesis, margin, alpha)
 
-    power_val = _compute_unpaired_power(spec.direction, n_units_reference, effect, std, m, alpha)
+    power_val = _compute_unpaired_power(
+        spec.direction, n_units_reference, n_units_candidate, effect, std, m, alpha
+    )
 
     return UnpairedPowerAtResult(
         n_units_reference=n_units_reference,
@@ -339,8 +339,9 @@ def required_unpaired_n_units(
     power: float = 0.8,
     margin: float = 0.0,
     alpha: float = 0.05,
+    allocation_ratio: float = 1.0,
 ) -> UnpairedPowerResult:
-    """Compute the smallest number of units per group in an unpaired design reaching a target power.
+    """Compute the smallest number of units in an unpaired design reaching a target power, given an allocation ratio.
 
     Parameters
     ----------
@@ -367,13 +368,28 @@ def required_unpaired_n_units(
     Power is the probability that the test rejects the null hypothesis if the assumed difference holds. The
     calculation uses a normal approximation with the standard deviation taken as known; if the true
     standard deviation is larger than assumed, or is estimated from a small sample, the actual power can be lower.
+    allocation_ratio : float, default=1.0
+        Ratio of candidate units to reference units (``n_candidate / n_reference``).
     """
-    hi = _find_required_sample_size(
-        effect, std, alternative_hypothesis, power, margin, alpha, _compute_unpaired_power
-    )
+    check_in_open_interval_0_1(power, "power")
+    if allocation_ratio <= 0:
+        raise ValueError(f"Allocation ratio must be strictly positive, got {allocation_ratio}.")
+
+    spec = get_spec(alternative_hypothesis)
+    m = spec.margin_for(margin)
+    _validate_inputs(effect, std, alpha)
+    _validate_effect(spec.name, spec.direction, effect, m)
+
+    def reaches_target(n_ref: int) -> bool:
+        n_cand = max(2, round(n_ref * allocation_ratio))
+        return _compute_unpaired_power(spec.direction, n_ref, n_cand, effect, std, m, alpha) >= power
+
+    hi_ref = _find_required_n(reaches_target)
+    hi_cand = max(2, round(hi_ref * allocation_ratio))
+
     achieved = unpaired_power(
-        n_units_reference=hi,
-        n_units_candidate=hi,
+        n_units_reference=hi_ref,
+        n_units_candidate=hi_cand,
         effect=effect,
         std=std,
         alternative_hypothesis=alternative_hypothesis,
@@ -484,14 +500,16 @@ def _compute_paired_power(
 
 def _compute_unpaired_power(
     direction: Direction,
-    n_units: float,
+    n_units_reference: float,
+    n_units_candidate: float,
     effect: float,
     std: float,
     margin: float,
     alpha: float,
 ) -> float:
-    """Internal math helper: return the power of the unpaired normal-approximation test."""
-    scale = math.sqrt(n_units / 2) / std
+    """Internal math helper: return the power of the unpaired normal-approximation test with support for unequal group sizes."""
+    # Standard error scale factor for independent samples with potentially unequal sizes
+    scale = 1.0 / (std * math.sqrt(1.0 / n_units_reference + 1.0 / n_units_candidate))
     return _core_power(direction, scale, effect, margin, alpha)
 
 

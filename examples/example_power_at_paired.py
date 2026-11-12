@@ -18,9 +18,8 @@ from eval_gate import (
 
 if __name__ == "__main__":
 
-    population_size = 200
-    n_resample = 1
-    alternative_hypothesis = "equivalence"
+    population_size = 400
+    n_resample = 20
 
     # Pilot data, used only to estimate the variability.
     reference = simulate(
@@ -44,16 +43,15 @@ if __name__ == "__main__":
     # Variability: standard deviation of the per-unit paired differences.
     std = paired_std(reference.y, candidate.y)
 
-
     # Question: what power does a study have?
     # Fixed: effect, margin, n_units, std, alpha. Solved for: power.
-    achieved = paired_power(
+    result = paired_power(
         n_units=population_size,  # given: number of units available
         effect=0.05,  # assumed: the true difference
         margin=0.15,  # chosen: largest difference still considered equivalent
         std=std,  # estimated from pilot data
-        alternative_hypothesis=alternative_hypothesis,  # chosen
+        alternative_hypothesis="equivalence",  # chosen
         alpha=0.05,  # chosen: significance level
     )
 
-    print(interpret_paired_power_at(achieved))
+    print(interpret_paired_power_at(result))

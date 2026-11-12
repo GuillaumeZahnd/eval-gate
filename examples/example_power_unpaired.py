@@ -21,7 +21,6 @@ if __name__ == "__main__":
     n_units_reference = 3_000
     n_units_candidate = 6_000
     n_resample = 1
-    alternative_hypothesis = "equivalence"
 
     # Pilot data, used only to estimate the variability.
     reference = simulate(
@@ -47,13 +46,14 @@ if __name__ == "__main__":
 
     # Question: how many units are needed to detect an effect?
     # Fixed: effect, std, alpha, power. Solved for: n_units.
-    design = required_unpaired_n_units(
-        effect=0.15,  # assumed: the smallest true difference worth detecting
+    result = required_unpaired_n_units(
+        effect=0.1,  # assumed: the smallest true difference worth detecting
         std=std,  # estimated from pilot data
-        alternative_hypothesis=alternative_hypothesis,  # chosen
+        alternative_hypothesis="equivalence",  # chosen
         power=0.8,  # chosen: target power
         alpha=0.05,  # chosen: significance level
-        margin=0.2,  # TODO
+        margin=0.5,  # TODO
+        allocation_ratio=1.0,  # TODO
     )
 
-    print(interpret_unpaired_power(design))
+    print(interpret_unpaired_power(result))

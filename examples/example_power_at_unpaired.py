@@ -10,50 +10,51 @@ Power analysis links five interdependent quantities: fixing any four determines 
 
 from eval_gate import (
     simulate,
-    paired_std,
-    paired_power,
-    interpret_paired_power_at
+    unpaired_std,
+    unpaired_power,
+    interpret_unpaired_power_at
 )
 
 
 if __name__ == "__main__":
 
-    population_size = 200
+    n_units_reference = 300
+    n_units_candidate = 100
     n_resample = 1
-    alternative_hypothesis = "equivalence"
 
     # Pilot data, used only to estimate the variability.
     reference = simulate(
-        n=population_size,
+        n=n_units_reference,
         m=n_resample,
         distribution_between="gaussian",
-        mu=1.0,
-        std_between=1.0,
+        mu=5.0,
+        std_between=4.0,
         seed=0,
     )
 
     candidate = simulate(
-        n=population_size,
+        n=n_units_candidate,
         m=n_resample,
-        distribution_between="lognormal",
-        mu=1.0,
+        distribution_between="gaussian",
+        mu=5.3,
         std_between=0.5,
         seed=0,
     )
 
     # Variability: standard deviation of the per-unit paired differences.
-    std = paired_std(reference.y, candidate.y)
+    std = unpaired_std(reference.y, candidate.y)
 
 
     # Question: what power does a study have?
     # Fixed: effect, margin, n_units, std, alpha. Solved for: power.
-    achieved = paired_power(
-        n_units=population_size,  # given: number of units available
+    result = unpaired_power(
+        n_units_reference=n_units_reference,  # given: number of reference units available
+        n_units_candidate=n_units_candidate,  # given: number of candidate units available     
         effect=0.05,  # assumed: the true difference
         margin=0.15,  # chosen: largest difference still considered equivalent
         std=std,  # estimated from pilot data
-        alternative_hypothesis=alternative_hypothesis,  # chosen
+        alternative_hypothesis="superiority",  # chosen
         alpha=0.05,  # chosen: significance level
     )
 
-    print(interpret_paired_power_at(achieved))
+    print(interpret_unpaired_power_at(result))

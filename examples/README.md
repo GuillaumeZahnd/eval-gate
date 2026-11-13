@@ -159,7 +159,11 @@ Computes how many units each of two independent groups needs for the test to det
 
 ```python
 # example_required_n_unpaired.py
-from eval_gate import unpaired_std, required_unpaired_n_units, interpret_unpaired_required_n
+from eval_gate import (
+    unpaired_std,
+    required_unpaired_n_units,
+    interpret_unpaired_required_n,
+)
 
 # reference: array of shape (3_000,), one measurement per unit
 # candidate: array of shape (6_000,), one measurement per unit

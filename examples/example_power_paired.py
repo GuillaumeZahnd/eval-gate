@@ -19,7 +19,7 @@ if __name__ == "__main__":
         n=population_size,
         m=n_measurements_per_unit,
         distribution_between="gaussian",  # distribution of the values across units, within a single sample
-        distribution_within="gaussian",  # distribution of the repeated measurements (resamples)  
+        distribution_within="gaussian",  # distribution of the repeated measurements (resamples)
         mu=1.0,  # population grand mean
         std_between=1.0,  # standard deviation across units
         seed=0,
@@ -29,7 +29,7 @@ if __name__ == "__main__":
         n=population_size,
         m=n_measurements_per_unit,
         distribution_between="lognormal",  # distribution of the values across units, within a single sample
-        distribution_within="gaussian",  # distribution of the repeated measurements (resamples)  
+        distribution_within="gaussian",  # distribution of the repeated measurements (resamples)
         mu=1.0,  # population grand mean
         std_between=0.5,  # standard deviation across units
         seed=0,

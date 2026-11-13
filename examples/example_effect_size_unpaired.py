@@ -24,10 +24,10 @@ if __name__ == "__main__":
         n=population_size_candidate,
         m=n_measurements_per_unit_candidate,
         distribution_between="gaussian",  # distribution of the values across units, within a single sample
-        distribution_within="gaussian",  # distribution of the repeated measurements (resamples)  
+        distribution_within="gaussian",  # distribution of the repeated measurements (resamples)
         mu=83.0,  # population grand mean
         std_between=2.0,  # standard deviation across units
-        std_within=1.0,  # standard deviation across repeated measurements 
+        std_within=1.0,  # standard deviation across repeated measurements
         seed=1,
     )
 

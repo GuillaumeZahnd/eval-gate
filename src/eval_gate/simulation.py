@@ -60,17 +60,19 @@ def simulate(
     n : int
         Number of units.
     m : int, default=1.
-        Number of resamples per unit.
+        Number of measurements per unit (a value of one indicates ...).
     distribution_between : str, default="gaussian"
-        Distribution type for between-unit means.
+        Distribution of the values across units, within a single sample.
     distribution_within : str, default="gaussian"
-        Distribution type for within-unit noise.
+        Distribution of the repeated measurements (resamples) of the same unit
+        around that unit's value. Only matters when ``m > 1``.
     mu : float, default=0.0
         Population grand mean.
     std_between : float, default=1.0
-        Standard deviation between units.
+        Standard deviation across units, within a single sample (one measurement per unit).
     std_within : float, default=1.0
-        Standard deviation within units.
+        Standard deviation across repeated measurements (resamples) of the same unit.
+        Only matters when ``m > 1``.
     heteroscedastic : bool, default=False
         If True, assigns varying noise levels across units using a Gamma distribution.
     seed : int | None, optional

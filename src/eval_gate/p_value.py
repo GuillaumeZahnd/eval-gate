@@ -66,8 +66,8 @@ class PairedPValueResult:
 
 
 def paired_p_value(
-    a: np.ndarray,
-    b: np.ndarray,
+    reference: np.ndarray,
+    candidate: np.ndarray,
     alternative_hypothesis: AlternativeHypothesis = "two_sided",
     *,
     margin: float = 0.0,
@@ -79,9 +79,9 @@ def paired_p_value(
 
     Parameters
     ----------
-    a : np.ndarray
+    reference : np.ndarray
         Reference (baseline) measurements of shape ``(n,)`` or ``(n, k)``.
-    b : np.ndarray
+    candidate : np.ndarray
         Candidate measurements of shape ``(n,)`` or ``(n, k)``.
     alternative_hypothesis : AlternativeHypothesis, default="two_sided"
         The alternative hypothesis being tested; the null hypothesis of each is:
@@ -121,7 +121,7 @@ def paired_p_value(
     spec = get_spec(alternative_hypothesis)
     m = spec.margin_for(margin)
 
-    diff, se, n_units = mean_and_se(paired_differences(a, b))
+    diff, se, n_units = mean_and_se(paired_differences(reference, candidate))
 
     check_se_is_non_zero(se)
 
@@ -183,8 +183,8 @@ class UnpairedPValueResult:
 
 
 def unpaired_p_value(
-    a: np.ndarray,
-    b: np.ndarray,
+    reference: np.ndarray,
+    candidate: np.ndarray,
     alternative_hypothesis: AlternativeHypothesis = "two_sided",
     *,
     margin: float = 0.0,
@@ -197,9 +197,9 @@ def unpaired_p_value(
 
     Parameters
     ----------
-    a : np.ndarray
+    reference : np.ndarray
         Reference (baseline) measurements of shape ``(n_reference,)`` or ``(n_reference, k)``.
-    b : np.ndarray
+    candidate : np.ndarray
         Candidate measurements of shape ``(n_candidate,)`` or ``(n_candidate, k)``.
     alternative_hypothesis : AlternativeHypothesis, default="two_sided"
         The alternative hypothesis being tested; the null hypothesis of each is:
@@ -239,7 +239,7 @@ def unpaired_p_value(
     spec = get_spec(alternative_hypothesis)
     m = spec.margin_for(margin)
 
-    difference = unpaired_difference(a, b)
+    difference = unpaired_difference(reference, candidate)
 
     check_se_is_non_zero(difference.se)
 

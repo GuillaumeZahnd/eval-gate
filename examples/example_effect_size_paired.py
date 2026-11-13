@@ -25,7 +25,7 @@ if __name__ == "__main__":
     result = compute_paired_effect_size(
         reference=reference.y,
         candidate=candidate.y,
-        alpha=0.05,  # significance level of the confidence interval
+        alpha=0.05,  # significance level of the confidence interval (95% here)
     )
 
     print(interpret_paired_effect_size(result))

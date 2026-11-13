@@ -34,7 +34,7 @@ if __name__ == "__main__":
     result = compute_unpaired_effect_size(
         reference=reference.y,
         candidate=candidate.y,
-        alpha=0.005,  # significance level of the confidence interval
+        alpha=0.005,  # significance level of the confidence interval (99.5% here)
     )
 
     print(interpret_unpaired_effect_size(result))

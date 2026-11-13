@@ -26,7 +26,7 @@ print(interpret_sem(result))
 
 ### Paired version
 
-Tests whether a candidate differs from, exceeds, is not worse than, or is equivalent to a reference, when every unit is measured under both, by testing the mean of the per-unit differences.
+Tests whether a candidate differs from, is higher than, is not lower than (within a margin), or is equivalent to (within a margin) a reference, when every unit is measured under both, by testing the mean of the per-unit differences.
 
 ```python
 # example_pvalue_paired.py
@@ -48,7 +48,7 @@ print(interpret_paired_p_value(result))
 >
 > [VERDICT] Non-inferiority established. A drop of 0.100 or more is ruled out; the candidate may be equal or higher.
 
-### Unaired version
+### Unpaired version
 
 Tests the same hypotheses when the candidate and the reference are measured on different, independent units, using Welch's test, which does not assume equal variances or equal group sizes.
 
@@ -210,7 +210,7 @@ result = paired_power(
     alpha=0.05,  # chosen: significance level
 )
 
-print(interpret_paired_power_at(result))
+print(interpret_paired_power(result))
 ```
 
 > [RESULT] Power 88.9% with 400 units at significance level 0.05. Assumed true difference (candidate - reference): 0.050; assumed standard deviation of the per-unit differences: 0.698 (standardized effect 0.07).
@@ -242,7 +242,7 @@ result = unpaired_power(
     alpha=0.05,  # chosen: significance level
 )
 
-print(interpret_unpaired_power_at(result))
+print(interpret_unpaired_power(result))
 ```
 
 > [RESULT] Power 6.3% with 300 reference and 100 candidate units at significance level 0.05. Assumed true difference (candidate - reference): 0.050; assumed pooled standard deviation: 3.708 (standardized effect 0.01).

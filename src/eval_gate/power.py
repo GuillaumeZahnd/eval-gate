@@ -14,7 +14,7 @@ _MAX_N_UNITS = 10**9  # Upper limit of the search for the required number of uni
 
 
 @dataclass(frozen=True)
-class PairedPowerResult:
+class PairedRequiredNResult:
     """Result of a sample-size analysis for a paired comparison, with its design conditions.
 
     Attributes
@@ -48,7 +48,7 @@ class PairedPowerResult:
 
 
 @dataclass(frozen=True)
-class UnpairedPowerResult:
+class UnpairedRequiredNResult:
     """Result of a sample-size analysis for an unpaired comparison, with its design conditions.
 
     Attributes
@@ -85,7 +85,7 @@ class UnpairedPowerResult:
 
 
 @dataclass(frozen=True)
-class PairedPowerAtResult:
+class PairedPowerResult:
     """Power of a paired comparison for a given number of units, with its design conditions.
 
     Attributes
@@ -117,7 +117,7 @@ class PairedPowerAtResult:
 
 
 @dataclass(frozen=True)
-class UnpairedPowerAtResult:
+class UnpairedPowerResult:
     """Power of an unpaired comparison for a given sample size per group, with its design conditions.
 
     Attributes
@@ -158,7 +158,7 @@ def paired_power(
     *,
     margin: float = 0.0,
     alpha: float = 0.05,
-) -> PairedPowerAtResult:
+) -> PairedPowerResult:
     """Compute the power of ``paired_p_value`` for a given number of units.
 
     The test is the normal approximation used by ``paired_p_value``, with ``std`` taken as known.
@@ -181,7 +181,7 @@ def paired_power(
 
     Returns
     -------
-    PairedPowerAtResult
+    PairedPowerResult
         The power together with the number of units and the design conditions. The power
         equals ``alpha`` when ``effect`` sits on the boundary of the null.
 
@@ -201,7 +201,7 @@ def paired_power(
 
     spec, m = _prepare_power_params(effect, std, alternative_hypothesis, margin, alpha)
 
-    return PairedPowerAtResult(
+    return PairedPowerResult(
         n_units=n_units,
         power=_compute_paired_power(spec.direction, n_units, effect, std, m, alpha),
         alternative_hypothesis=alternative_hypothesis,
@@ -221,7 +221,7 @@ def unpaired_power(
     *,
     margin: float = 0.0,
     alpha: float = 0.05,
-) -> UnpairedPowerAtResult:
+) -> UnpairedPowerResult:
     """Compute the power of ``unpaired_p_value`` for given group sample sizes.
 
     The test is the normal approximation used by ``unpaired_p_value``, with ``std`` taken as the known pooled standard deviation.
@@ -246,7 +246,7 @@ def unpaired_power(
 
     Returns
     -------
-    UnpairedPowerAtResult
+    UnpairedPowerResult
         The power together with group sample sizes and design conditions. The power
         equals ``alpha`` when ``effect`` sits on the boundary of the null.
 
@@ -272,7 +272,7 @@ def unpaired_power(
         spec.direction, n_units_reference, n_units_candidate, effect, std, m, alpha
     )
 
-    return UnpairedPowerAtResult(
+    return UnpairedPowerResult(
         n_units_reference=n_units_reference,
         n_units_candidate=n_units_candidate,
         power=power_val,
@@ -292,7 +292,7 @@ def required_paired_n_units(
     power: float = 0.8,
     margin: float = 0.0,
     alpha: float = 0.05,
-) -> PairedPowerResult:
+) -> PairedRequiredNResult:
     """Compute the smallest number of paired units reaching a target power.
 
     Parameters
@@ -312,7 +312,7 @@ def required_paired_n_units(
 
     Returns
     -------
-    PairedPowerResult
+    PairedRequiredNResult
         The required number of paired units, the power it achieves, and design conditions.
 
     Notes
@@ -332,7 +332,7 @@ def required_paired_n_units(
         margin=margin,
         alpha=alpha,
     )
-    return PairedPowerResult(target_power=power, **asdict(achieved))
+    return PairedRequiredNResult(target_power=power, **asdict(achieved))
 
 
 def required_unpaired_n_units(
@@ -344,7 +344,7 @@ def required_unpaired_n_units(
     margin: float = 0.0,
     alpha: float = 0.05,
     allocation_ratio: float = 1.0,
-) -> UnpairedPowerResult:
+) -> UnpairedRequiredNResult:
     """Compute the smallest number of units in an unpaired design reaching a target power, given an allocation ratio.
 
     Parameters
@@ -361,10 +361,12 @@ def required_unpaired_n_units(
         Largest acceptable difference.
     alpha : float, default=0.05
         Significance level of the test, in ``(0, 1)``.
+    allocation_ratio : float, default=1.0
+        Ratio of candidate units to reference units (``n_candidate / n_reference``).
 
     Returns
     -------
-    UnpairedPowerResult
+    UnpairedRequiredNResult
         The required sample size per group, the power achieved, and design conditions.
 
     Notes
@@ -372,8 +374,6 @@ def required_unpaired_n_units(
     Power is the probability that the test rejects the null hypothesis if the assumed difference holds. The
     calculation uses a normal approximation with the standard deviation taken as known; if the true
     standard deviation is larger than assumed, or is estimated from a small sample, the actual power can be lower.
-    allocation_ratio : float, default=1.0
-        Ratio of candidate units to reference units (``n_candidate / n_reference``).
     """
     check_in_open_interval_0_1(power, "power")
     if allocation_ratio <= 0:
@@ -407,7 +407,7 @@ def required_unpaired_n_units(
         margin=margin,
         alpha=alpha,
     )
-    return UnpairedPowerResult(target_power=power, **asdict(achieved))
+    return UnpairedRequiredNResult(target_power=power, **asdict(achieved))
 
 
 def _find_required_n(reaches_target, max_units: int = _MAX_N_UNITS) -> int:

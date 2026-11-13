@@ -4,10 +4,10 @@ from .core import AlternativeHypothesis
 from .effect_size import PairedEffectResult, UnpairedEffectResult, magnitude_label
 from .p_value import PairedPValueResult, UnpairedPValueResult
 from .power import (
-    PairedPowerAtResult,
     PairedPowerResult,
-    UnpairedPowerAtResult,
+    PairedRequiredNResult,
     UnpairedPowerResult,
+    UnpairedRequiredNResult,
 )
 from .sem import SEMResult
 
@@ -298,7 +298,7 @@ def _power_goal(
 
 
 def _interpret_required_n(
-    result: PairedPowerResult | UnpairedPowerResult,
+    result: PairedRequiredNResult | UnpairedRequiredNResult,
     *,
     metric: str,
     unit: str,
@@ -312,7 +312,7 @@ def _interpret_required_n(
 
     Parameters
     ----------
-    result : PairedPowerResult or UnpairedPowerResult
+    result : PairedRequiredNResult or UnpairedRequiredNResult
         The sample-size result to read.
     metric : str
         What is being compared, e.g. ``"mean accuracy"``.
@@ -366,8 +366,8 @@ def _interpret_required_n(
     return _report(numbers, verdict, caveats)
 
 
-def interpret_paired_power(
-    result: PairedPowerResult,
+def interpret_paired_required_n(
+    result: PairedRequiredNResult,
     *,
     metric: str = "mean outcome",
     unit: str = "units",
@@ -377,7 +377,7 @@ def interpret_paired_power(
 
     Parameters
     ----------
-    result : PairedPowerResult
+    result : PairedRequiredNResult
         The result object returned by ``required_n_units``.
     metric : str, default="mean outcome"
         What is being compared, e.g. ``"mean accuracy"``.
@@ -405,8 +405,8 @@ def interpret_paired_power(
     )
 
 
-def interpret_unpaired_power(
-    result: UnpairedPowerResult,
+def interpret_unpaired_required_n(
+    result: UnpairedRequiredNResult,
     *,
     metric: str = "mean outcome",
     unit: str = "units",
@@ -416,7 +416,7 @@ def interpret_unpaired_power(
 
     Parameters
     ----------
-    result : UnpairedPowerResult
+    result : UnpairedRequiredNResult
         The result object returned by the unpaired ``required_n_units``.
     metric : str, default="mean outcome"
         What is being compared, e.g. ``"mean accuracy"``.
@@ -480,7 +480,7 @@ def _power_status(
 
 
 def _interpret_power_at(
-    result: PairedPowerAtResult | UnpairedPowerAtResult,
+    result: PairedPowerResult | UnpairedPowerResult,
     *,
     metric: str,
     unit: str,
@@ -494,7 +494,7 @@ def _interpret_power_at(
 
     Parameters
     ----------
-    result : PairedPowerAtResult or UnpairedPowerAtResult
+    result : PairedPowerResult or UnpairedPowerResult
         The power result to read.
     metric : str
         What is being compared, e.g. ``"mean accuracy"``.
@@ -569,8 +569,8 @@ def _interpret_power_at(
     return _report(numbers, verdict, caveats)
 
 
-def interpret_paired_power_at(
-    result: PairedPowerAtResult,
+def interpret_paired_power(
+    result: PairedPowerResult,
     *,
     metric: str = "mean outcome",
     unit: str = "units",
@@ -580,7 +580,7 @@ def interpret_paired_power_at(
 
     Parameters
     ----------
-    result : PairedPowerAtResult
+    result : PairedPowerResult
         The result object returned by ``paired_power``.
     metric : str, default="mean outcome"
         What is being compared, e.g. ``"mean accuracy"``.
@@ -608,8 +608,8 @@ def interpret_paired_power_at(
     )
 
 
-def interpret_unpaired_power_at(
-    result: UnpairedPowerAtResult,
+def interpret_unpaired_power(
+    result: UnpairedPowerResult,
     *,
     metric: str = "mean outcome",
     unit: str = "units",
@@ -619,7 +619,7 @@ def interpret_unpaired_power_at(
 
     Parameters
     ----------
-    result : UnpairedPowerAtResult
+    result : UnpairedPowerResult
         The result object returned by ``unpaired_power``.
     metric : str, default="mean outcome"
         What is being compared, e.g. ``"mean accuracy"``.

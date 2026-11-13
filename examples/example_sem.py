@@ -1,12 +1,12 @@
 from eval_gate import compute_sem, interpret_sem, simulate
 
 if __name__ == "__main__":
-    population_size = 500
-    n_resample = 1
+    population_size = 500  # number of units
+    n_measurements_per_unit = 1  # number of measurements per unit (resample)
 
     measurements = simulate(
         n=population_size,
-        m=n_resample,
+        m=n_measurements_per_unit,
         seed=0,
     )
 

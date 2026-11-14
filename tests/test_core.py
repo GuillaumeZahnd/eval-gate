@@ -66,7 +66,9 @@ class TestGetSpec:
         assert get_spec("equivalence") is get_spec("equivalence")
 
     def test_superiority_and_non_inferiority_share_a_direction(self):
-        assert get_spec("superiority").direction == get_spec("non_inferiority").direction
+        assert (
+            get_spec("superiority").direction == get_spec("non_inferiority").direction
+        )
 
     @pytest.mark.parametrize(
         "bad",
@@ -84,16 +86,16 @@ class TestGetSpec:
         with pytest.raises(ValueError, match="'alternative_hypothesis' must be one of"):
             get_spec(bad)
 
-    @pytest.mark.parametrize("bad", [None, 1, 1.5, ["superiority"], ("superiority",), {"a": 1}])
+    @pytest.mark.parametrize(
+        "bad", [None, 1, 1.5, ["superiority"], ("superiority",), {"a": 1}]
+    )
     def test_non_string_raises_value_error(self, bad):
         # Unhashable inputs (list, dict) and non-str hashables must not leak KeyError or TypeError.
         with pytest.raises(ValueError, match="'alternative_hypothesis' must be one of"):
             get_spec(bad)
 
     def test_error_message_lists_options_and_shows_the_bad_value(self):
-        expected = (
-            f"'alternative_hypothesis' must be one of {ALTERNATIVE_HYPOTHESES}, got 'nope'."
-        )
+        expected = f"'alternative_hypothesis' must be one of {ALTERNATIVE_HYPOTHESES}, got 'nope'."
         with pytest.raises(ValueError, match=re.escape(expected)):
             get_spec("nope")
 

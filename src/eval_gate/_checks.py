@@ -1,4 +1,5 @@
 import math
+
 import numpy as np
 
 
@@ -220,7 +221,7 @@ def check_min_units(n: int, what: str, minimum: int) -> None:
     ValueError
         If ``n < minimum``.
     """
-    if n < minimum:
+    if not n >= minimum:
         raise ValueError(
             f"At least {minimum} units are required to compute {what}, got {n}."
         )

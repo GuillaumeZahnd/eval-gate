@@ -54,7 +54,7 @@ class HypothesisSpec:
         """
         if not self.needs_margin:
             return 0.0
-        check_finite_strictly_positive(margin, "margin")    
+        check_finite_strictly_positive(margin, "margin")
         return float(margin)
 
 

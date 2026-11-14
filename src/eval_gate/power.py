@@ -1,4 +1,5 @@
 import math
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 
 from scipy.stats import norm
@@ -7,8 +8,9 @@ from ._checks import (
     check_finite,
     check_finite_strictly_positive,
     check_in_open_interval_0_1,
+    check_min_units,
 )
-from .core import AlternativeHypothesis, Direction, get_spec
+from .core import AlternativeHypothesis, Direction, HypothesisSpec, get_spec
 
 _MAX_N_UNITS = 10**9  # Upper limit of the search for the required number of units.
 
@@ -54,9 +56,10 @@ class UnpairedRequiredNResult:
     Attributes
     ----------
     n_units_reference : int
-        Smallest number of reference units reaching ``target_power`` (balanced design).
+        Smallest number of reference units reaching ``target_power``, given ``allocation_ratio``.
     n_units_candidate : int
-        Smallest number of candidate units reaching ``target_power`` (balanced design).
+        Number of candidate units paired with ``n_units_reference`` by ``allocation_ratio``
+        (at least 2).
     power : float
         Power achieved with these sample sizes; at least ``target_power``.
     target_power : float
@@ -94,7 +97,7 @@ class PairedPowerResult:
         Number of paired units.
     power : float
         Probability that the test rejects the null hypothesis with ``n_units``.
-        It is at most ``alpha`` when ``effect`` sits on the boundary of the null.
+        It equals ``alpha`` when ``effect`` sits on the boundary of the null (at most ``alpha`` for equivalence).
     alternative_hypothesis : AlternativeHypothesis
         The alternative hypothesis to be tested.
     margin : float
@@ -128,6 +131,7 @@ class UnpairedPowerResult:
         Number of units in the candidate group.
     power : float
         Probability that the test rejects the null hypothesis.
+        It equals ``alpha`` when ``effect`` sits on the boundary of the null (at most ``alpha`` for equivalence).
     alternative_hypothesis : AlternativeHypothesis
         The alternative hypothesis to be tested.
     margin : float
@@ -183,12 +187,16 @@ def paired_power(
     -------
     PairedPowerResult
         The power together with the number of units and the design conditions. The power
-        equals ``alpha`` when ``effect`` sits on the boundary of the null.
+        equals ``alpha`` when ``effect`` sits on the boundary of the null (at most ``alpha`` for equivalence).
 
     Raises
     ------
     ValueError
-        If ``n_units`` is less than 2.
+        If ``n_units`` is less than 2 or ``NaN``.
+        If ``alpha`` is not in ``(0, 1)``.
+        If ``std`` is not finite and strictly positive, or ``effect`` is not finite.
+        If ``alternative_hypothesis`` is unknown.
+        If the hypothesis requires a margin and ``margin`` is not finite and strictly positive.
 
     Notes
     -----
@@ -196,8 +204,7 @@ def paired_power(
     calculation uses a normal approximation with the standard deviation taken as known; if the true
     standard deviation is larger than assumed, or is estimated from a small sample, the actual power can be lower.
     """
-    if n_units < 2:
-        raise ValueError(f"At least 2 units are required, got {n_units}.")
+    check_min_units(n_units, what="the power", minimum=2)
 
     spec, m = _prepare_power_params(effect, std, alternative_hypothesis, margin, alpha)
 
@@ -248,12 +255,16 @@ def unpaired_power(
     -------
     UnpairedPowerResult
         The power together with group sample sizes and design conditions. The power
-        equals ``alpha`` when ``effect`` sits on the boundary of the null.
+        equals ``alpha`` when ``effect`` sits on the boundary of the null (at most ``alpha`` for equivalence).
 
     Raises
     ------
     ValueError
-        If either group has fewer than 2 units, or if group sizes are unbalanced during power evaluation.
+        If either group has fewer than 2 units, or a number of units that is ``NaN``.
+        If ``alpha`` is not in ``(0, 1)``.
+        If ``std`` is not finite and strictly positive, or ``effect`` is not finite.
+        If ``alternative_hypothesis`` is unknown.
+        If the hypothesis requires a margin and ``margin`` is not finite and strictly positive.
 
     Notes
     -----
@@ -261,21 +272,17 @@ def unpaired_power(
     calculation uses a normal approximation with the standard deviation taken as known; if the true
     standard deviation is larger than assumed, or is estimated from a small sample, the actual power can be lower.
     """
-    if n_units_reference < 2 or n_units_candidate < 2:
-        raise ValueError(
-            f"At least 2 units are required in each group, got reference={n_units_reference}, candidate={n_units_candidate}."
-        )
+    check_min_units(n_units_reference, what="the power (reference group)", minimum=2)
+    check_min_units(n_units_candidate, what="the power (candidate group)", minimum=2)
 
     spec, m = _prepare_power_params(effect, std, alternative_hypothesis, margin, alpha)
-
-    power_val = _compute_unpaired_power(
-        spec.direction, n_units_reference, n_units_candidate, effect, std, m, alpha
-    )
 
     return UnpairedPowerResult(
         n_units_reference=n_units_reference,
         n_units_candidate=n_units_candidate,
-        power=power_val,
+        power=_compute_unpaired_power(
+            spec.direction, n_units_reference, n_units_candidate, effect, std, m, alpha
+        ),
         alternative_hypothesis=alternative_hypothesis,
         margin=m,
         effect=effect,
@@ -306,7 +313,8 @@ def required_paired_n_units(
     power : float, default=0.8
         Target probability of rejecting the null hypothesis, in ``(0, 1)``.
     margin : float, default=0.0
-        Largest acceptable difference.
+        Largest acceptable difference. Required to be positive for
+        ``"non_inferiority"`` and ``"equivalence"``, and ignored otherwise.
     alpha : float, default=0.05
         Significance level of the test, in ``(0, 1)``.
 
@@ -315,17 +323,33 @@ def required_paired_n_units(
     PairedRequiredNResult
         The required number of paired units, the power it achieves, and design conditions.
 
+    Raises
+    ------
+    ValueError
+        If ``power`` or ``alpha`` is not in ``(0, 1)``.
+        If ``std`` is not finite and strictly positive, or ``effect`` is not finite.
+        If ``alternative_hypothesis`` is unknown.
+        If the hypothesis requires a margin and ``margin`` is not finite and strictly positive.
+        If ``effect`` does not lie in the alternative hypothesis (for example, zero for ``"two_sided"``).
+        If more than ``10**9`` units would be needed.
+
     Notes
     -----
     Power is the probability that the test rejects the null hypothesis if the assumed difference holds. The
     calculation uses a normal approximation with the standard deviation taken as known; if the true
     standard deviation is larger than assumed, or is estimated from a small sample, the actual power can be lower.
     """
-    hi = _find_required_sample_size(
-        effect, std, alternative_hypothesis, power, margin, alpha, _compute_paired_power
+    spec, m = _prepare_required_params(
+        effect, std, alternative_hypothesis, power, margin, alpha
+    )
+
+    n_units = _find_required_n(
+        lambda n: (
+            _compute_paired_power(spec.direction, n, effect, std, m, alpha) >= power
+        )
     )
     achieved = paired_power(
-        n_units=hi,
+        n_units=n_units,
         effect=effect,
         std=std,
         alternative_hypothesis=alternative_hypothesis,
@@ -358,7 +382,8 @@ def required_unpaired_n_units(
     power : float, default=0.8
         Target probability of rejecting the null hypothesis, in ``(0, 1)``.
     margin : float, default=0.0
-        Largest acceptable difference.
+        Largest acceptable difference. Required to be positive for
+        ``"non_inferiority"`` and ``"equivalence"``, and ignored otherwise.
     alpha : float, default=0.05
         Significance level of the test, in ``(0, 1)``.
     allocation_ratio : float, default=1.0
@@ -369,38 +394,42 @@ def required_unpaired_n_units(
     UnpairedRequiredNResult
         The required sample size per group, the power achieved, and design conditions.
 
+    Raises
+    ------
+    ValueError
+        If ``allocation_ratio`` is not finite and strictly positive.
+        If ``power`` or ``alpha`` is not in ``(0, 1)``.
+        If ``std`` is not finite and strictly positive, or ``effect`` is not finite.
+        If ``alternative_hypothesis`` is unknown.
+        If the hypothesis requires a margin and ``margin`` is not finite and strictly positive.
+        If ``effect`` does not lie in the alternative hypothesis (for example, zero for ``"two_sided"``).
+        If more than ``10**9`` reference units would be needed.
+
     Notes
     -----
     Power is the probability that the test rejects the null hypothesis if the assumed difference holds. The
     calculation uses a normal approximation with the standard deviation taken as known; if the true
     standard deviation is larger than assumed, or is estimated from a small sample, the actual power can be lower.
     """
-    check_in_open_interval_0_1(power, "power")
-    if allocation_ratio <= 0:
-        raise ValueError(
-            f"Allocation ratio must be strictly positive, got {allocation_ratio}."
-        )
+    check_finite_strictly_positive(allocation_ratio, "allocation_ratio")
+    spec, m = _prepare_required_params(
+        effect, std, alternative_hypothesis, power, margin, alpha
+    )
 
-    spec = get_spec(alternative_hypothesis)
-    m = spec.margin_for(margin)
-    _validate_inputs(effect, std, alpha)
-    _validate_effect(spec.name, spec.direction, effect, m)
+    def candidate_size(n_reference: int) -> int:
+        return max(2, round(n_reference * allocation_ratio))
 
-    def reaches_target(n_ref: int) -> bool:
-        n_cand = max(2, round(n_ref * allocation_ratio))
-        return (
+    n_reference = _find_required_n(
+        lambda n: (
             _compute_unpaired_power(
-                spec.direction, n_ref, n_cand, effect, std, m, alpha
+                spec.direction, n, candidate_size(n), effect, std, m, alpha
             )
             >= power
         )
-
-    hi_ref = _find_required_n(reaches_target)
-    hi_cand = max(2, round(hi_ref * allocation_ratio))
-
+    )
     achieved = unpaired_power(
-        n_units_reference=hi_ref,
-        n_units_candidate=hi_cand,
+        n_units_reference=n_reference,
+        n_units_candidate=candidate_size(n_reference),
         effect=effect,
         std=std,
         alternative_hypothesis=alternative_hypothesis,
@@ -410,17 +439,19 @@ def required_unpaired_n_units(
     return UnpairedRequiredNResult(target_power=power, **asdict(achieved))
 
 
-def _find_required_n(reaches_target, max_units: int = _MAX_N_UNITS) -> int:
+def _find_required_n(
+    reaches_target: Callable[[int], bool], max_units: int = _MAX_N_UNITS
+) -> int:
     """Shared bisection and exponential growth search for required sample size."""
     lo = 2
     hi = 2
     while not reaches_target(hi):
-        lo = hi
-        hi = min(hi * 2, max_units)
-        if hi == max_units:
+        if hi >= max_units:
             raise ValueError(
                 f"More than {max_units} units would be needed; check 'effect' and 'std'."
             )
+        lo = hi
+        hi = min(hi * 2, max_units)
     while lo < hi:
         mid = (lo + hi) // 2
         if reaches_target(mid):
@@ -430,26 +461,33 @@ def _find_required_n(reaches_target, max_units: int = _MAX_N_UNITS) -> int:
     return hi
 
 
-def _find_required_sample_size(
+def _prepare_required_params(
     effect: float,
     std: float,
     alternative_hypothesis: AlternativeHypothesis,
     power: float,
     margin: float,
     alpha: float,
-    power_evaluator,
-) -> int:
-    """Validate inputs, resolve specification/margin, and find the required sample size via bisection."""
+) -> tuple[HypothesisSpec, float]:
+    """Validate the inputs of a sample-size search; return the spec and the effective margin."""
     check_in_open_interval_0_1(power, "power")
+    spec, m = _prepare_power_params(effect, std, alternative_hypothesis, margin, alpha)
+    _validate_effect(spec.name, spec.direction, effect, m)
+    return spec, m
+
+
+def _prepare_power_params(
+    effect: float,
+    std: float,
+    alternative_hypothesis: AlternativeHypothesis,
+    margin: float,
+    alpha: float,
+) -> tuple[HypothesisSpec, float]:
+    """Shared validation and specification resolution for power functions."""
     spec = get_spec(alternative_hypothesis)
     m = spec.margin_for(margin)
     _validate_inputs(effect, std, alpha)
-    _validate_effect(spec.name, spec.direction, effect, m)
-
-    def reaches_target(n: int) -> bool:
-        return power_evaluator(spec.direction, n, effect, std, m, alpha) >= power
-
-    return _find_required_n(reaches_target)
+    return spec, m
 
 
 def _validate_inputs(effect: float, std: float, alpha: float) -> None:
@@ -528,17 +566,3 @@ def _compute_unpaired_power(
     # Standard error scale factor for independent samples with potentially unequal sizes
     scale = 1.0 / (std * math.sqrt(1.0 / n_units_reference + 1.0 / n_units_candidate))
     return _core_power(direction, scale, effect, margin, alpha)
-
-
-def _prepare_power_params(
-    effect: float,
-    std: float,
-    alternative_hypothesis: AlternativeHypothesis,
-    margin: float,
-    alpha: float,
-) -> tuple:
-    """Shared validation and specification resolution for power functions."""
-    spec = get_spec(alternative_hypothesis)
-    m = spec.margin_for(margin)
-    _validate_inputs(effect, std, alpha)
-    return spec, m

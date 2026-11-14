@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Literal, get_args
 
+from ._checks import check_finite_strictly_positive
+
 # Alternative hypotheses; comments give the null (Δ = true mean(Candidate - Reference), m = margin > 0).
 AlternativeHypothesis = Literal[
     "two_sided",  # H0: Δ = 0
@@ -48,14 +50,11 @@ class HypothesisSpec:
         Raises
         ------
         ValueError
-            If a margin is required and ``margin`` is not positive.
+            If a margin is required and ``margin`` is not finite and strictly positive.
         """
         if not self.needs_margin:
             return 0.0
-        if not margin > 0.0:
-            raise ValueError(
-                f"'{self.name}' requires a positive 'margin', got {margin}."
-            )
+        check_finite_strictly_positive(margin, "margin")
         return float(margin)
 
 

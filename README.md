@@ -23,6 +23,7 @@ Computes how many paired units a study needs for the test to detect a given true
 
 ```python
 """example_required_n_paired.py"""
+
 from eval_gate import paired_std, required_paired_n_units, interpret_paired_required_n
 
 # reference, candidate: arrays of shape (200,), one paired measurement per unit

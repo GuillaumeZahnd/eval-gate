@@ -6,6 +6,7 @@ Estimates the mean of a set of measurements and how precisely it is known, as a 
 
 ```python
 """example_sem.py"""
+
 from eval_gate import compute_sem, interpret_sem
 
 # outcomes: array of shape (500,), one measurement per unit
@@ -30,6 +31,7 @@ Tests whether a candidate differs from, is higher than, is not lower than (withi
 
 ```python
 """example_pvalue_paired.py"""
+
 from eval_gate import paired_p_value, interpret_paired_p_value
 
 # reference, candidate: arrays of shape (200,), one paired measurement per unit
@@ -54,6 +56,7 @@ Tests the same hypotheses when the candidate and the reference are measured on d
 
 ```python
 """example_pvalue_unpaired.py"""
+
 from eval_gate import unpaired_p_value, interpret_unpaired_p_value
 
 # reference: array of shape (200,), one measurement per unit
@@ -80,6 +83,7 @@ Measures how large the mean difference between a candidate and a reference is, i
 
 ```python
 """example_effect_size_paired.py"""
+
 from eval_gate import compute_paired_effect_size, interpret_paired_effect_size
 
 # reference, candidate: arrays of shape (25,), one paired measurement per unit
@@ -104,6 +108,7 @@ Measures how large the difference between the means of two independent groups is
 
 ```python
 """example_effect_size_unpaired.py"""
+
 from eval_gate import compute_unpaired_effect_size, interpret_unpaired_effect_size
 
 # reference: array of shape (2_000,), one measurement per unit
@@ -129,6 +134,7 @@ Computes how many paired units a study needs for the test to detect a given true
 
 ```python
 """example_required_n_paired.py"""
+
 from eval_gate import paired_std, required_paired_n_units, interpret_paired_required_n
 
 # reference, candidate: arrays of shape (200,), one paired measurement per unit
@@ -159,6 +165,7 @@ Computes how many units each of two independent groups needs for the test to det
 
 ```python
 """example_required_n_unpaired.py"""
+
 from eval_gate import (
     unpaired_std,
     required_unpaired_n_units,
@@ -198,6 +205,7 @@ Computes the probability (the power) that the paired test detects a given true d
 
 ```python
 """example_power_paired.py"""
+
 from eval_gate import paired_std, paired_power, interpret_paired_power
 
 # reference, candidate: arrays of shape (400, 20), 20 measurements per unit
@@ -229,6 +237,7 @@ Computes the probability (the power) that the unpaired test detects a given true
 
 ```python
 """example_power_unpaired.py"""
+
 from eval_gate import unpaired_std, unpaired_power, interpret_unpaired_power
 
 # reference: array of shape (300,), one measurement per unit
